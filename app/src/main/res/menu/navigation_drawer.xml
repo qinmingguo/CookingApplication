@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <group
+        android:id="@+id/side_bar"
+        android:checkableBehavior="single">
+
+        <item
+            android:id="@+id/Home_Button"
+            android:icon="@drawable/round_home_20"
+            app:showAsAction="ifRoom"
+            android:title="@string/home" />
+
+        <item
+            android:id="@+id/Favourite_Menu_Button"
+            android:icon="@drawable/round_favorite_20"
+            app:showAsAction="ifRoom"
+            android:title="@string/favourite" />
+
+        <item
+            android:id="@+id/History_Menu_Button"
+            android:icon="@drawable/round_history_20"
+            app:showAsAction="ifRoom"
+            android:title="@string/history" />
+
+        <item
+            android:id="@+id/Own_Menu_Button"
+            android:icon="@drawable/round_person_20"
+            app:showAsAction="ifRoom"
+            android:title="Own" />
+
+        <item
+            android:id="@+id/Personal_Information_Button"
+            android:icon="@drawable/round_person_20"
+            app:showAsAction="ifRoom"
+            android:title="Personal" />
+
+
+        <item
+            android:id="@+id/Setting_Button"
+            android:icon="@drawable/round_settings_20"
+            app:showAsAction="ifRoom"
+            android:title="Setting" />
+
+    </group>
+
+
+</menu>

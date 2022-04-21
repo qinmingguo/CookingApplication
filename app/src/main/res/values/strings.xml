@@ -1,0 +1,47 @@
+<resources>
+    <string name="app_name">Project</string>
+    <string name="setting">Setting</string>
+    <string name="search">Search</string>
+    <string name="home">Home</string>
+    <string name="favourite">Favourite</string>
+    <string name="history">History</string>
+    <string name="title_activity_login">LoginActivity</string>
+    <string name="prompt_email">Email</string>
+    <string name="prompt_password">Password</string>
+    <string name="action_sign_in">Sign in or register</string>
+    <string name="action_sign_in_short">Sign in</string>
+    <string name="welcome">"Welcome !"</string>
+    <string name="invalid_username">Not a valid username</string>
+    <string name="invalid_password">Password must be >5 characters</string>
+    <string name="login_failed">"Login failed"</string>
+    <string name="user_collection">User</string>
+    <string name="menu_collection">Menu</string>
+    <string name="create">Create new menu</string>
+    <string name="confirm">Confirm</string>
+
+    <string name="account">Account</string>
+    <string name="password">Password</string>
+
+    <string name="title">Title</string>
+    <string name="author">Author</string>
+    <string name="intro">Intro</string>>
+
+    <string name="go">GO</string>
+    <string name="date">Date</string>
+
+    <string name="address">Address</string>
+    <string name="name">Name</string>
+    <string name="age">Age</string>
+    <string name="phone_number">Phone Number</string>
+    <string name="email">Email</string>
+    <string name="job">Job</string>
+    <string name="change">Change</string>
+    <string name="ingredient">Ingredient</string>
+    <string name="process">Process</string>
+    <string name="next">Next</string>
+    <string name="todo">TODO</string>
+    <string name="previous">Previous</string>
+    <string name="country">Country</string>
+    <string name="id">ID</string>
+    <string name="username">Username</string>
+</resources>

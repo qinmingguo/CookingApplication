@@ -1,0 +1,10 @@
+{
+    "_id":  "626162f34002766616453af4",
+    "title":"testMenu",
+    "_partition":"menu=",
+    "author":"Allen",
+    "calender":"2022-04-19",
+    "introduction":"something",
+    "ingredient":["Rice","Oil"],
+    "process":["Fry Rice","pour oild"]
+}
