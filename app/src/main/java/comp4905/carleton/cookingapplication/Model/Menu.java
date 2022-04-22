@@ -23,6 +23,8 @@ public class Menu extends RealmObject {
     private String _id;
     @Required
     private String _partition;
+    @Required
+    private String author_id;
     private String author;
     private String calender;
     @Required
@@ -68,7 +70,7 @@ public class Menu extends RealmObject {
     }
 
     public String toString(){
-        return String.format("{_id: %d, title: %s, author: %s, calendar: %s,ingredient: %s,process: %s",_id,title,author,calender.toString(),ingredient.toString(),process.toString());
+        return String.format("{_id: %s, title: %s, author: %s, calendar: %s,ingredient: %s,process: %s",_id,title,author,calender.toString(),ingredient.toString(),process.toString());
     }
 
     public String get_partition() {
@@ -82,6 +84,14 @@ public class Menu extends RealmObject {
     }
     public String setIntroduction(String i) {
         return introduction = i;
+    }
+
+    public String getAuthor_id() {
+        return author_id;
+    }
+
+    public void setAuthor_id(String author_id) {
+        this.author_id = author_id;
     }
 }
 
