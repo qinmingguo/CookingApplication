@@ -46,4 +46,7 @@
     <string name="username">Username</string>
     <string name="own">Own</string>
     <string name="record">Record</string>
+    <string name="introduction">Introduction</string>
+    <string name="enter_the_title">Enter the title</string>
+    <string name="some_introduction">some introduction</string>
 </resources>

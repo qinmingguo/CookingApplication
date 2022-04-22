@@ -36,12 +36,15 @@
         <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:padding="10dp"
             app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
+                android:divider="#442C2E"
+                android:orientation="vertical"
+                android:showDividers="middle|beginning">
 
                 <LinearLayout
                     android:id="@+id/Title_Space"
@@ -54,7 +57,7 @@
                     <TextView
                         android:id="@+id/textView5"
                         android:layout_width="match_parent"
-                        android:layout_height="40dp"
+                        android:layout_height="48dp"
                         android:text="@string/title"
                         android:textColor="@color/black"
                         android:textSize="30sp" />
@@ -62,11 +65,37 @@
                     <EditText
                         android:id="@+id/Title_text_field"
                         android:layout_width="match_parent"
-                        android:layout_height="40dp"
+                        android:layout_height="48dp"
                         android:ems="10"
-                        android:hint="Enter the title"
-                        android:inputType="textPersonName" />
+                        android:hint="@string/enter_the_title"
+                        android:inputType="textPersonName"
+                        android:textColor="@color/black" />
 
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0"
+                    android:orientation="vertical"
+                    android:padding="5dp">
+
+                    <TextView
+                        android:id="@+id/textView2"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:text="@string/introduction"
+                        android:textColor="@color/black"
+                        android:textSize="30sp" />
+
+                    <EditText
+                        android:id="@+id/introduction_field_add"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:ems="10"
+                        android:hint="@string/some_introduction"
+                        android:inputType="text"
+                        android:textColor="@color/black" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -79,7 +108,7 @@
                     <TextView
                         android:id="@+id/textView6"
                         android:layout_width="match_parent"
-                        android:layout_height="40dp"
+                        android:layout_height="48dp"
                         android:text="@string/ingredient"
                         android:textColor="@color/black"
                         android:textSize="30sp" />
@@ -90,25 +119,19 @@
                         android:layout_height="match_parent"
                         android:orientation="vertical">
 
-                        <LinearLayout
+                        <EditText
+                            android:id="@+id/Ingredient_text_field_1"
                             android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:orientation="vertical">
-
-                            <EditText
-                                android:id="@+id/Ingredient_text_field_1"
-                                android:layout_width="match_parent"
-                                android:layout_height="40dp"
-                                android:ems="10"
-                                android:inputType="textPersonName" />
-                        </LinearLayout>
+                            android:layout_height="48dp"
+                            android:ems="10"
+                            android:inputType="textPersonName" />
 
                     </LinearLayout>
 
                     <ImageButton
                         android:id="@+id/Add_Ingredient_Button"
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
                         android:background="#FEDBD0"
                         app:srcCompat="@drawable/round_add_circle_20" />
 
@@ -129,6 +152,7 @@
                         android:textColor="@color/black"
                         android:textSize="30sp" />
 
+
                     <LinearLayout
                         android:id="@+id/Process_Space"
                         android:layout_width="match_parent"
@@ -138,15 +162,17 @@
                         <EditText
                             android:id="@+id/Process_text_field_1"
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
+                            android:layout_height="48dp"
                             android:ems="10"
                             android:inputType="textPersonName" />
+
                     </LinearLayout>
+
 
                     <ImageButton
                         android:id="@+id/Add_Process_Button"
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
                         android:background="#FEDBD0"
                         app:srcCompat="@drawable/round_add_circle_20" />
 
@@ -161,11 +187,12 @@
                     <Button
                         android:id="@+id/confirm_button_add"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
+                        android:layout_height="48dp"
                         android:backgroundTint="#8D6E63"
                         android:padding="10dp"
                         android:text="@string/confirm"
-                        android:textAlignment="center" />
+                        android:textAlignment="center"
+                        android:textColor="@color/black" />
                 </LinearLayout>
 
             </LinearLayout>

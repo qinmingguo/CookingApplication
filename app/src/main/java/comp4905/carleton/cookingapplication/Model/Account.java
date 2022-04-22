@@ -175,22 +175,13 @@ public class Account extends RealmObject {
 //      "bsonType": "string"
 //    },
 //    "own_menu_id_list": {
-//      "bsonType": "array",
-//      "items": {
 //        "bsonType": "string"
-//      }
 //    },
 //    "favor_menu_list": {
-//      "bsonType": "array",
-//      "items": {
 //        "bsonType": "string"
-//      }
 //    },
 //    "history_menu_id_list": {
-//      "bsonType": "array",
-//      "items": {
 //        "bsonType": "string"
-//      }
 //    }
 //  },
 //  "required": [
