@@ -1,6 +1,5 @@
 package comp4905.carleton.cookingapplication;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SearchView;
 import androidx.drawerlayout.widget.DrawerLayout;
@@ -25,7 +24,6 @@ import com.google.android.material.navigation.NavigationView;
 
 import org.bson.types.ObjectId;
 
-import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -35,15 +33,10 @@ import io.realm.Realm;
 import io.realm.RealmConfiguration;
 import io.realm.RealmList;
 import io.realm.RealmResults;
-import io.realm.internal.SyncObjectServerFacade;
 import io.realm.mongodb.App;
 import io.realm.mongodb.AppConfiguration;
 import io.realm.mongodb.User;
-import io.realm.mongodb.sync.ClientResetRequiredError;
-import io.realm.mongodb.sync.DiscardUnsyncedChangesStrategy;
 import io.realm.mongodb.sync.SyncConfiguration;
-import io.realm.mongodb.sync.SyncSession;
-
 public class MainActivity extends AppCompatActivity {
 
     private  final String TAG = this.getClass().getSimpleName() + " @" + System.identityHashCode(this);
@@ -52,6 +45,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_PERSONAL = 1;
     private static final int REQUEST_SETTING = 2;
     private static final int REQUEST_CREATE = 3;
+    private static final int REQUEST_LOGIN = 4;
 
     //View
     private TableLayout main_table;
@@ -66,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
 
     private ArrayList<View> table_view_group;
 
-    private TextView email_field;
+    private TextView email_field,name_field;
 
     //Number of table menu store
     private int current_menu_value;
@@ -74,7 +68,7 @@ public class MainActivity extends AppCompatActivity {
     //Realm
     private Realm backgroundThreadRealm;
 
-    private App taskapp;
+    private App app;
 
     private User user;
 
@@ -91,347 +85,370 @@ public class MainActivity extends AppCompatActivity {
     protected  void onStart(){
         super.onStart();
 
-        Realm.init(this);
-        taskapp = new App(new AppConfiguration.Builder(BuildConfig.MONGODB_REALM_APP_ID).defaultSyncClientResetStrategy(new DiscardUnsyncedChangesStrategy() {
-            @Override
-            public void onBeforeReset(Realm realm) {
-                Log.w("EXAMPLE", "Beginning client reset for " + realm.getPath());
-
-            }
-
-            @Override
-            public void onAfterReset(Realm before, Realm after) {
-                Log.w("EXAMPLE", "Finished client reset for " + before.getPath());
-
-            }
-
-            @Override
-            public void onError(SyncSession session, ClientResetRequiredError error) {
-                Log.e("EXAMPLE", "Couldn't handle the client reset automatically." +
-                        " Falling back to manual recovery: " + error.getErrorMessage());
-            }
-        }).build());
-
-        user = taskapp.currentUser();
-
-        if(user==null){
-            startActivity(new Intent(this, LoginActivity.class));
-        }else{
-            config = new SyncConfiguration.Builder(user,"user="+user.getId()).allowWritesOnUiThread(true).build();
-
-            Realm.getInstanceAsync(config, new Realm.Callback() {
-                @Override
-                public void onSuccess(Realm realm) {
-                    backgroundThreadRealm = realm;
-                }
-            });
-
-//            Log.i(TAG, user.getId());
-//            Log.i(TAG, backgroundThreadRealm.toString());
+        Log.e(TAG,"Realm stay "+backgroundThreadRealm);
 
 
-
-//            main_menus_list = getAllMenu();
-//            favor_menus_list = getUsersFavorMenu();
-//            history_menus_list = getUsersHistoryMenu();
-//            user_menus_list = getUsersOwnMenu();
-        }
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        //for test;
-//        client.testEx();
+        //initial Realm stuff
+        Realm.init(this);
 
+        //initial task app
+        app = new App(new AppConfiguration.Builder(BuildConfig.MONGODB_REALM_APP_ID).build());
+
+        //get current user
+        user = app.currentUser();
+
+        if(user==null){
+            //if don't have user then start to login
+            startActivityForResult(new Intent(this, LoginActivity.class),REQUEST_LOGIN);
+        }else {
+            //if have user then initial Realm and check account
+            config = new SyncConfiguration.Builder(user,"account="+user.getId()).allowWritesOnUiThread(true).build();
+
+            backgroundThreadRealm = Realm.getInstance(config);
+
+            account = backgroundThreadRealm.where(Account.class).equalTo("_partition","account="+user.getId()).findFirst();
+            //check account is vaild
+            if(account==null){
+                //user don't have a account yet, create new one
+                backgroundThreadRealm.executeTransaction(realm -> {
+                    Account a = new Account();
+                    a.set_partition("account="+user.getId());
+                    a.set_id(ObjectId.get().toString());
+                    a.setAccount("");
+                    a.setAge(0);
+                    a.setFavor_menu_list("");
+                    a.setHistory_menu_id_list("");
+                    a.setOwn_menu_id_list("");
+                    a.setPassword("");
+                    realm.insertOrUpdate(a);
+                });
+                account = backgroundThreadRealm.where(Account.class).equalTo("_partition","account="+user.getId()).findFirst();
+            }
+        }
+
+        //initial table view group
         table_view_group = new ArrayList<>();
-
         current_menu_value = 0;
 
         //link main frame
-        main_table = (TableLayout) findViewById(R.id.main_table);
+        main_table =  findViewById(R.id.main_table);
 
         //link top bar
-        topAppBar = (MaterialToolbar) findViewById(R.id.topAppBar);
+        topAppBar =  findViewById(R.id.topAppBar);
         setSupportActionBar(topAppBar);
 
         //handle Navigation trigger
         topAppBar.setNavigationOnClickListener(view -> drawerLayout.openDrawer(navigationView));
 
         //link navigation view.
-        drawerLayout = (DrawerLayout) findViewById(R.id.drawerLayout);
-        navigationView = (NavigationView) findViewById(R.id.sidebar);
+        drawerLayout =  findViewById(R.id.drawerLayout);
+        navigationView =  findViewById(R.id.sidebar);
         email_field = (TextView)navigationView.getHeaderView(R.id.email_field_header);
+        name_field = (TextView)navigationView.getHeaderView(R.id.name_field_header);
 
 
         //handle the side bar selection.
-//        navigationView.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener() {
-//            @Override
-//            public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-//                switch (item.getItemId()) {
-//                    case R.id.Home_Button:
-//                        // TODO:Change table to Home
-//                        Log.i(TAG,"Home Button is pressed");
-//                        //change Main Page title
-//                        topAppBar.setTitle(R.string.home);
-//                        //Clean main table menu items.
-//                        main_table.removeAllViews();
-//                        current_menu_value = 0;
-//                        table_view_group.clear();
-//                        for(int i = current_menu_value;i<current_menu_value+6&&i<main_menus_list.size();i++){
-//                            if(current_table_row.getChildCount()==2){
-//                                current_table_row = new TableRow(MainActivity.this);
-//                                main_table.addView(current_table_row);
+        navigationView.setNavigationItemSelectedListener(item -> {
+            switch (item.getItemId()) {
+                case R.id.Home_Button:
+                    // Change table to Home
+                    Log.i(TAG,"Home Button is pressed");
+                    //initial menus list
+                    main_menus_list = getAllMenu();
+                    favor_menus_list = getUsersFavorMenu();
+                    if(main_menus_list==null){
+                        break;
+                    }
+
+                    //change Main Page title
+                    topAppBar.setTitle(R.string.home);
+
+                    //Clean main table menu items.
+                    main_table.removeAllViews();
+                    current_table_row= null;
+                    current_menu_value = 0;
+                    table_view_group.clear();
+
+                    // Action goes here
+                    for(int i = current_menu_value;i<current_menu_value+6&&i<main_menus_list.size();i++){
+                        if(current_table_row==null||current_table_row.getChildCount()==2){
+                            current_table_row = new TableRow(MainActivity.this);
+                            main_table.addView(current_table_row);
+                        }
+                        View new_menu = getLayoutInflater().inflate(R.layout.table_item,null);
+                        TextView title_text_view = new_menu.findViewById(R.id.menu_title_field);
+                        title_text_view.setText(main_menus_list.get(i).getTitle());
+                        TextView author_text_view = new_menu.findViewById(R.id.menu_author_field);
+                        author_text_view.setText(main_menus_list.get(i).getAuthor());
+                        TextView intro_text_view = new_menu.findViewById(R.id.menu_intro_field);
+                        intro_text_view.setText(main_menus_list.get(i).getIntroduction());
+                        Button go_button = new_menu.findViewById(R.id.menu_go_button);
+                        int index = i;
+                        go_button.setOnClickListener(view -> {
+                            // Go to Menu Read Activity.
+                            startReadMenu(main_menus_list.get(index));
+                            addMenusToHistory(history_menus_list.get(index));
+                        });
+                        Button favor_button = new_menu.findViewById(R.id.menu_add_favor_button);
+
+                        // handle favor button part
+                        if(favor_menus_list.contains(main_menus_list.get(i))){
+                            favor_button.setBackgroundColor(getResources().getColor(R.color.purple_200));
+                        }
+                        favor_button.setOnClickListener(view -> {
+                            if(account!=null){
+                                // Add to favor
+                                if(favor_menus_list.contains(main_menus_list.get(index))){
+                                    favor_button.setBackgroundColor(getResources().getColor(R.color.purple_700));
+                                    removeMenusFromFavor(main_menus_list.get(index));
+                                }else{
+                                    favor_button.setBackgroundColor(getResources().getColor(R.color.purple_200));
+                                    addMenusToFavor(main_menus_list.get(index));
+                                }
+                            }else{
+                                Toast.makeText(MainActivity.this,"Please login first",Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                        current_table_row.addView(new_menu);
+                        System.out.println("New View added: "+current_menu_value);
+                        table_view_group.add(new_menu);
+                        current_menu_value++;
+                    }
+                    break;
+                case R.id.Favourite_Menu_Button:
+                    // Change table to Favorite
+                    Log.i(TAG,"Favourite Button is pressed");
+                    //initial menus list
+                    favor_menus_list = getUsersFavorMenu();
+
+                    //check user login state
+                    if(user==null){
+                        Toast.makeText(MainActivity.this,"Please login first",Toast.LENGTH_SHORT).show();
+                        break;
+                    }
+                    if(favor_menus_list==null){
+                        break;
+                    }
+
+                    //change Main Page title
+                    topAppBar.setTitle(R.string.favourite);
+
+                    //Clean main table menu items.
+                    main_table.removeAllViews();
+                    current_table_row= null;
+                    current_menu_value = 0;
+                    table_view_group.clear();
+
+                    // Action goes here
+                    for(int i = current_menu_value;i<current_menu_value+6&&i<favor_menus_list.size();i++){
+                        if(current_table_row==null||current_table_row.getChildCount()==2){
+                            current_table_row = new TableRow(MainActivity.this);
+                            main_table.addView(current_table_row);
+                        }
+                        View new_menu = getLayoutInflater().inflate(R.layout.table_item,null);
+                        TextView title_text_view = new_menu.findViewById(R.id.menu_title_field);
+                        title_text_view.setText(favor_menus_list.get(i).getTitle());
+                        TextView author_text_view = new_menu.findViewById(R.id.menu_author_field);
+                        author_text_view.setText(favor_menus_list.get(i).getAuthor());
+                        TextView intro_text_view = new_menu.findViewById(R.id.menu_intro_field);
+                        intro_text_view.setText(favor_menus_list.get(i).getIntroduction());
+                        Button go_button = new_menu.findViewById(R.id.menu_go_button);
+                        int index = i;
+                        go_button.setOnClickListener(view -> {
+                            //Go to Menu Read Activity.
+                            startReadMenu(favor_menus_list.get(index));
+                            addMenusToHistory(history_menus_list.get(index));
+                        });
+                        Button favor_button = new_menu.findViewById(R.id.menu_add_favor_button);
+                        // handle favor button part
+                        favor_button.setOnClickListener(view -> {
+                            if(account!=null){
+                                //Add to favor
+                                favor_button.setBackgroundColor(getResources().getColor(R.color.purple_700));
+                                removeMenusFromFavor(favor_menus_list.get(index));
+                                current_table_row = (TableRow) new_menu.getParent();
+                                current_table_row.removeView(new_menu);
+                            }else{
+                                Toast.makeText(MainActivity.this,"Please login first",Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                        current_table_row.addView(new_menu);
+                        System.out.println("New View added: "+current_menu_value);
+                        table_view_group.add(new_menu);
+                        current_menu_value++;
+                    }
+                    break;
+                case R.id.History_Menu_Button:
+                    //Change table to History
+                    Log.i(TAG,"History Button is pressed");
+                    //initial menus list
+                    history_menus_list = getUsersHistoryMenu();
+                    favor_menus_list = getUsersFavorMenu();
+                    //check user login state
+                    if(user==null){
+                        Toast.makeText(MainActivity.this,"Please login first",Toast.LENGTH_SHORT).show();
+                        break;
+                    }
+                    if(history_menus_list==null){
+                        break;
+                    }
+
+                    //change Main Page title
+                    topAppBar.setTitle(R.string.history);
+
+                    //Clean main table menu items.
+                    main_table.removeAllViews();
+                    current_table_row= null;
+                    current_menu_value = 0;
+                    table_view_group.clear();
+
+                    // Action goes here
+                    for(int i = current_menu_value;i<current_menu_value+6&&i<history_menus_list.size();i++){
+                        if(current_table_row==null||current_table_row.getChildCount()==2){
+                            current_table_row = new TableRow(MainActivity.this);
+                            main_table.addView(current_table_row);
+                        }
+                        View new_menu = getLayoutInflater().inflate(R.layout.table_item,null);
+                        TextView title_text_view = new_menu.findViewById(R.id.menu_title_field);
+                        title_text_view.setText(history_menus_list.get(i).getTitle());
+                        TextView author_text_view = new_menu.findViewById(R.id.menu_author_field);
+                        author_text_view.setText(history_menus_list.get(i).getAuthor());
+                        TextView intro_text_view = new_menu.findViewById(R.id.menu_intro_field);
+                        intro_text_view.setText(history_menus_list.get(i).getIntroduction());
+                        Button go_button = new_menu.findViewById(R.id.menu_go_button);
+                        int index = i;
+                        go_button.setOnClickListener(view -> {
+                            //Go to Menu Read Activity.
+                            startReadMenu(history_menus_list.get(index));
+                        });
+                        Button favor_button = new_menu.findViewById(R.id.menu_add_favor_button);
+                        //handle favor button part
+                        favor_button.setOnClickListener(view -> {
+                            if(account!=null){
+                                //Add to favor
+                                if(favor_menus_list.contains(history_menus_list.get(index))){
+                                    favor_button.setBackgroundColor(getResources().getColor(R.color.purple_700));
+                                    removeMenusFromFavor(history_menus_list.get(index));
+                                }else{
+                                    favor_button.setBackgroundColor(getResources().getColor(R.color.purple_200));
+                                    addMenusToFavor(history_menus_list.get(index));
+                                }
+                            }else{
+                                Toast.makeText(MainActivity.this,"Please login first",Toast.LENGTH_SHORT).show();
+                            }
+                        });
 //                            }
-//                            View new_menu = getLayoutInflater().inflate(R.layout.table_item,null);
-//                            TextView title_text_view = new_menu.findViewById(R.id.menu_title_field);
-//                            title_text_view.setText(main_menus_list.get(i).getTitle());
-//                            TextView author_text_view = new_menu.findViewById(R.id.menu_author_field);
-//                            author_text_view.setText(main_menus_list.get(i).getAuthor());
-//                            TextView intro_text_view = new_menu.findViewById(R.id.menu_intro_field);
-//                            intro_text_view.setText(main_menus_list.get(i).getIntroduction());
-//                            Button go_button = new_menu.findViewById(R.id.menu_go_button);
-//                            int index = i;
-//                            go_button.setOnClickListener(view -> {
-//                                //TODO: Go to Menu Read Activity.
-//                                startReadMenu(main_menus_list.get(index));
-//                            });
-//                            Button favor_button = new_menu.findViewById(R.id.menu_add_favor_button);
-//                            //TODO: handle favor button part
-//                            if(favor_menus_list.contains(main_menus_list.get(i))){
-//                                favor_button.setBackgroundColor(getResources().getColor(R.color.purple_200));
+                        current_table_row.addView(new_menu);
+                        System.out.println("New View added: "+current_menu_value);
+                        table_view_group.add(new_menu);
+                        current_menu_value++;
+                    }
+                    break;
+                case R.id.Own_Menu_Button:
+                    // Change table to History
+                    Log.i(TAG,"Own Button is pressed");
+                    //initial menus list
+                    user_menus_list = getUsersOwnMenu();
+                    favor_menus_list = getUsersFavorMenu();
+                    //check user login state
+                    if(user==null){
+                        Toast.makeText(MainActivity.this,"Please login first",Toast.LENGTH_SHORT).show();
+                        break;
+                    }
+
+                    if(user_menus_list==null){
+                        break;
+                    }
+                    //change Main Page title
+                    topAppBar.setTitle(R.string.own);
+                    //Clean main table menu items.
+                    main_table.removeAllViews();
+                    current_table_row= null;
+                    current_menu_value = 0;
+                    table_view_group.clear();
+
+                    // Action goes here
+                    for(int i = current_menu_value;i<current_menu_value+6&&i<user_menus_list.size();i++){
+                        if(current_table_row==null||current_table_row.getChildCount()==2){
+                            current_table_row = new TableRow(MainActivity.this);
+                            main_table.addView(current_table_row);
+                        }
+                        View new_menu = getLayoutInflater().inflate(R.layout.table_item,null);
+                        TextView title_text_view = new_menu.findViewById(R.id.menu_title_field);
+                        title_text_view.setText(user_menus_list.get(i).getTitle());
+                        TextView author_text_view = new_menu.findViewById(R.id.menu_author_field);
+                        author_text_view.setText(user_menus_list.get(i).getAuthor());
+                        TextView intro_text_view = new_menu.findViewById(R.id.menu_intro_field);
+                        intro_text_view.setText(user_menus_list.get(i).getIntroduction());
+                        Button go_button = new_menu.findViewById(R.id.menu_go_button);
+                        int index = i;
+                        go_button.setOnClickListener(view -> {
+                            //TODO: Go to Menu Read Activity.
+                            startReadMenu(user_menus_list.get(index));
+
+                        });
+                        Button favor_button = new_menu.findViewById(R.id.menu_add_favor_button);
+                        //TODO: handle favor button part
+                        favor_button.setOnClickListener(view -> {
+                            if(account!=null){
+                                //TODO: Add to favor
+                                if(favor_menus_list.contains(user_menus_list.get(index))){
+                                    favor_button.setBackgroundColor(getResources().getColor(R.color.purple_700));
+                                    removeMenusFromFavor(user_menus_list.get(index));
+                                }else{
+                                    favor_button.setBackgroundColor(getResources().getColor(R.color.purple_200));
+                                    addMenusToFavor(user_menus_list.get(index));
+                                }
+                            }else{
+                                Toast.makeText(MainActivity.this,"Please login first",Toast.LENGTH_SHORT).show();
+                            }
+                        });
 //                            }
-//
-//                            favor_button.setOnClickListener(view -> {
-//                                if(account!=null){
-//                                    //TODO: Add to favor
-//                                    if(favor_menus_list.contains(main_menus_list.get(index))){
-//                                        favor_button.setBackgroundColor(getResources().getColor(R.color.purple_700));
-//                                        removeMenusFromFavor(main_menus_list.get(index));
-//                                    }else{
-//                                        favor_button.setBackgroundColor(getResources().getColor(R.color.purple_200));
-//                                        addMenusToFavor(main_menus_list.get(index));
-//                                    }
-//                                }else{
-//                                    Toast.makeText(MainActivity.this,"Please login first",Toast.LENGTH_SHORT).show();
-//                                }
-//                            });
-//
-//                            current_table_row.addView(new_menu);
-//                            System.out.println("New View added: "+current_menu_value);
-//                            table_view_group.add(new_menu);
-//                            current_menu_value++;
-//                        }
-//                        // Action goes here
-//                        break;
-//                    case R.id.Favourite_Menu_Button:
-//                        // TODO:Change table to Favorite
-//                        Log.i(TAG,"Favourite Button is pressed");
-//                        //check user login state
-//                        if(user==null){
-//                            Toast.makeText(MainActivity.this,"Please login first",Toast.LENGTH_SHORT).show();
-//                            break;
-//                        }
-//                        //change Main Page title
-//                        topAppBar.setTitle(R.string.favourite);
-//                        //Clean main table menu items.
-//                        main_table.removeAllViews();
-//                        current_menu_value = 0;
-//                        table_view_group.clear();
-//
-//                        for(int i = current_menu_value;i<current_menu_value+6&&i<favor_menus_list.size();i++){
-//                            if(current_table_row.getChildCount()==2){
-//                                current_table_row = new TableRow(MainActivity.this);
-//                                main_table.addView(current_table_row);
-//                            }
-//                            View new_menu = getLayoutInflater().inflate(R.layout.table_item,null);
-//                            TextView title_text_view = new_menu.findViewById(R.id.menu_title_field);
-//                            title_text_view.setText(favor_menus_list.get(i).getTitle());
-//                            TextView author_text_view = new_menu.findViewById(R.id.menu_author_field);
-//                            author_text_view.setText(favor_menus_list.get(i).getAuthor());
-//                            TextView intro_text_view = new_menu.findViewById(R.id.menu_intro_field);
-//                            intro_text_view.setText(favor_menus_list.get(i).getIntroduction());
-//                            Button go_button = new_menu.findViewById(R.id.menu_go_button);
-//                            int index = i;
-//                            go_button.setOnClickListener(view -> {
-//                                //TODO: Go to Menu Read Activity.
-//                                startReadMenu(favor_menus_list.get(index));
-//                            });
-//                            Button favor_button = new_menu.findViewById(R.id.menu_add_favor_button);
-//                            //TODO: handle favor button part
-//                            favor_button.setOnClickListener(view -> {
-//                                if(account!=null){
-//                                    //TODO: Add to favor
-//                                    favor_button.setBackgroundColor(getResources().getColor(R.color.purple_700));
-//                                    removeMenusFromFavor(favor_menus_list.get(index));
-//                                }else{
-//                                    Toast.makeText(MainActivity.this,"Please login first",Toast.LENGTH_SHORT).show();
-//                                }
-//                            });
-//
-//                            current_table_row.addView(new_menu);
-//                            System.out.println("New View added: "+current_menu_value);
-//                            table_view_group.add(new_menu);
-//                            current_menu_value++;
-//                        }
-//                        // Action goes here
-//                        break;
-//                    case R.id.History_Menu_Button:
-//                        // TODO:Change table to History
-//                        Log.i(TAG,"History Button is pressed");
-//                        //check user login state
-//                        if(user==null){
-//                            Toast.makeText(MainActivity.this,"Please login first",Toast.LENGTH_SHORT).show();
-//                            break;
-//                        }
-//                        //change Main Page title
-//                        topAppBar.setTitle(R.string.history);
-//                        //Clean main table menu items.
-//                        main_table.removeAllViews();
-//                        current_menu_value = 0;
-//                        table_view_group.clear();
-//
-//                        for(int i = current_menu_value;i<current_menu_value+6&&i<history_menus_list.size();i++){
-//                            if(current_table_row.getChildCount()==2){
-//                                current_table_row = new TableRow(MainActivity.this);
-//                                main_table.addView(current_table_row);
-//                            }
-//                            View new_menu = getLayoutInflater().inflate(R.layout.table_item,null);
-//                            TextView title_text_view = new_menu.findViewById(R.id.menu_title_field);
-//                            title_text_view.setText(history_menus_list.get(i).getTitle());
-//                            TextView author_text_view = new_menu.findViewById(R.id.menu_author_field);
-//                            author_text_view.setText(history_menus_list.get(i).getAuthor());
-//                            TextView intro_text_view = new_menu.findViewById(R.id.menu_intro_field);
-//                            intro_text_view.setText(history_menus_list.get(i).getIntroduction());
-//                            Button go_button = new_menu.findViewById(R.id.menu_go_button);
-//                            int index = i;
-//                            go_button.setOnClickListener(new View.OnClickListener() {
-//                                @Override
-//                                public void onClick(View view) {
-//                                    //TODO: Go to Menu Read Activity.
-//                                    startReadMenu(history_menus_list.get(index));
-//                                }
-//                            });
-//                            Button favor_button = new_menu.findViewById(R.id.menu_add_favor_button);
-////                            if (client.getUser()==null){
-////                                favor_button.setEnabled(false);
-////                            }else{
-//                            //TODO: handle favor button part
-//                            favor_button.setOnClickListener(view -> {
-//                                if(account!=null){
-//                                    //TODO: Add to favor
-//                                    if(favor_menus_list.contains(history_menus_list.get(index))){
-//                                        favor_button.setBackgroundColor(getResources().getColor(R.color.purple_700));
-//                                        removeMenusFromFavor(history_menus_list.get(index));
-//                                    }else{
-//                                        favor_button.setBackgroundColor(getResources().getColor(R.color.purple_200));
-//                                        addMenusToFavor(history_menus_list.get(index));
-//                                    }
-//                                }else{
-//                                    Toast.makeText(MainActivity.this,"Please login first",Toast.LENGTH_SHORT).show();
-//                                }
-//                            });
-////                            }
-//                            current_table_row.addView(new_menu);
-//                            System.out.println("New View added: "+current_menu_value);
-//                            table_view_group.add(new_menu);
-//                            current_menu_value++;
-//                        }
-//                        // Action goes here
-//                        break;
-//                    case R.id.Own_Menu_Button:
-//                        // TODO:Change table to History
-//                        Log.i(TAG,"Own Button is pressed");
-//                        //check user login state
-//                        if(user==null){
-//                            Toast.makeText(MainActivity.this,"Please login first",Toast.LENGTH_SHORT).show();
-//                            break;
-//                        }
-//                        //change Main Page title
-//                        topAppBar.setTitle(R.string.history);
-//                        //Clean main table menu items.
-//                        main_table.removeAllViews();
-//                        current_menu_value = 0;
-//                        table_view_group.clear();
-//
-//                        for(int i = current_menu_value;i<current_menu_value+6&&i<user_menus_list.size();i++){
-//                            if(i%2==0){
-//                                current_table_row = new TableRow(MainActivity.this);
-//                                main_table.addView(current_table_row);
-//                            }
-//                            View new_menu = getLayoutInflater().inflate(R.layout.table_item,null);
-//                            TextView title_text_view = new_menu.findViewById(R.id.menu_title_field);
-//                            title_text_view.setText(user_menus_list.get(i).getTitle());
-//                            TextView author_text_view = new_menu.findViewById(R.id.menu_author_field);
-//                            author_text_view.setText(user_menus_list.get(i).getAuthor());
-//                            TextView intro_text_view = new_menu.findViewById(R.id.menu_intro_field);
-//                            intro_text_view.setText(user_menus_list.get(i).getIntroduction());
-//                            Button go_button = new_menu.findViewById(R.id.menu_go_button);
-//                            int index = i;
-//                            go_button.setOnClickListener(view -> {
-//                                //TODO: Go to Menu Read Activity.
-//                                startReadMenu(user_menus_list.get(index));
-//
-//                            });
-//                            Button favor_button = new_menu.findViewById(R.id.menu_add_favor_button);
-////                            if (client.getUser()==null){
-////                                favor_button.setEnabled(false);
-////                            }else{
-//                            //TODO: handle favor button part
-//                            favor_button.setOnClickListener(view -> {
-//                                if(account!=null){
-//                                    //TODO: Add to favor
-//                                    if(favor_menus_list.contains(user_menus_list.get(index))){
-//                                        favor_button.setBackgroundColor(getResources().getColor(R.color.purple_700));
-//                                        removeMenusFromFavor(user_menus_list.get(index));
-//                                    }else{
-//                                        favor_button.setBackgroundColor(getResources().getColor(R.color.purple_200));
-//                                        addMenusToFavor(user_menus_list.get(index));
-//                                    }
-//                                }else{
-//                                    Toast.makeText(MainActivity.this,"Please login first",Toast.LENGTH_SHORT).show();
-//                                }
-//                            });
-////                            }
-//                            current_table_row.addView(new_menu);
-//                            System.out.println("New View added: "+current_menu_value);
-//                            table_view_group.add(new_menu);
-//                            current_menu_value++;
-//                        }
-//                        // Action goes here
-//                        break;
-//                    case R.id.Personal_Information_Button:
-//                        // TODO:Start Personal Activity
-//                        Log.i(TAG,"Information Button is pressed");
-//                        // Action goes here
-//                        if(user!=null){
-//                        startPersonalActivity(account);
-//                        }else{
-//                        Toast.makeText(MainActivity.this,"Please login first",Toast.LENGTH_SHORT).show();
-//                        }
-//                        break;
-//                    case R.id.Setting_Button:
-//                        // TODO:Start Personal Setting Activity
-//                        System.out.println("Setting Button clicked");
-//                        startActivityForResult(new Intent(MainActivity.this,SettingActivity.class),REQUEST_SETTING);
-//
-//                        // Action goes here
-//
-//                        break;
-//                }
-//                return false;
-//            }
-//        });
+                        current_table_row.addView(new_menu);
+                        System.out.println("New View added: "+current_menu_value);
+                        table_view_group.add(new_menu);
+                        current_menu_value++;
+                    }
+                    break;
+                case R.id.Personal_Information_Button:
+                    // Start Personal Activity
+                    Log.i(TAG,"Information Button is pressed");
+                    // Action goes here
+                    if(user!=null&&account!=null){
+                        Log.e(TAG,account.toString());
+                        startPersonalActivity(account);
+                    }else if(user != null){
+                        account = backgroundThreadRealm.where(Account.class).equalTo("_partition","account="+user.getId()).findFirst();
+                        startPersonalActivity(account);
+                    }else{
+                        Toast.makeText(MainActivity.this,"Please login first",Toast.LENGTH_SHORT).show();
+                    }
+                    break;
+                case R.id.Setting_Button:
+                    // Start Personal Setting Activity
+                    Log.i(TAG,"Setting Button clicked");
+                    // Action goes here
+                    startActivityForResult(new Intent(MainActivity.this,SettingActivity.class),REQUEST_SETTING);
+
+
+                    break;
+            }
+            return false;
+        });
 
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Associate searchable configuration with the SearchView
+        // Inflate the options menu from XML
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.setting_menu, menu);
-
         // Associate searchable configuration with the SearchView
         SearchManager searchManager =(SearchManager) getSystemService(Context.SEARCH_SERVICE);
 
@@ -444,7 +461,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == R.id.add_button) {// TODO:Start Create Menu Activity
+        if (item.getItemId() == R.id.add_button) {// Start Create Menu Activity
             Toast.makeText(MainActivity.this, "add is pressed", Toast.LENGTH_SHORT).show();
 
             startCreateMenu();
@@ -453,41 +470,66 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    //TODO: handle other activity result
+    // handle other activity result
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == REQUEST_PERSONAL) {
             if(resultCode == RESULT_OK) {
                 if(data.getBooleanExtra(String.valueOf(R.string.change),false)){
-                    changeUserInfo(data.getStringExtra(String.valueOf(R.string.name)),
-                            data.getIntExtra(String.valueOf(R.string.age),account.getAge()), data.getStringExtra(String.valueOf(R.string.phone_number)),
+                    updateAccount(data.getStringExtra(String.valueOf(R.string.name)),
+                            data.getIntExtra(String.valueOf(R.string.age),0), data.getStringExtra(String.valueOf(R.string.phone_number)),
                             data.getStringExtra(String.valueOf(R.string.email)));
                 }
             }
         }else if (requestCode == REQUEST_SETTING) {
             if(resultCode == RESULT_OK) {
-                //TODO: handle setting result
+                //handle setting result
                 startActivity(new Intent(this,LoginActivity.class));
             }
         }else if (requestCode == REQUEST_CREATE) {
             if(resultCode == RESULT_OK) {
-                //TODO: handle create result
-                comp4905.carleton.cookingapplication.Model.Menu new_menu = new comp4905.carleton.cookingapplication.Model.Menu();
-                new_menu.set_partition("user="+user.getId());
-                new_menu.setTitle(data.getStringExtra(String.valueOf(R.string.title)));
-                new_menu.setAuthor(account.getName());
-                String pattern = "yyyy-MM-dd";
-                SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
-                new_menu.setCalender(simpleDateFormat.format(LocalDate.now()));
-                new_menu.setIntroduction(data.getStringExtra(String.valueOf(R.string.intro)));
-                RealmList<String> ingred = new RealmList<>();
-                ingred.addAll(Arrays.asList(data.getStringArrayExtra(String.valueOf(R.string.ingredient))));
-                new_menu.setIngredient(ingred);
-                RealmList<String> p = new RealmList<>();
-                p.addAll(Arrays.asList(data.getStringArrayExtra(String.valueOf(R.string.process))));
-                new_menu.setProcess(p);
-                CreateNewMenu(new_menu);
+                //handle create result
+                LocalDate date = LocalDate.now();
+                String[] ingredient_list = data.getStringArrayExtra(String.valueOf(R.string.ingredient));
+                String ingredient = "";
+                for (String s : ingredient_list) {
+                    ingredient += s;
+                    ingredient += ";";
+                }
+                String[] process_list = data.getStringArrayExtra(String.valueOf(R.string.process));
+                String p = "";
+                for (String s : process_list) {
+                    p += s;
+                    p += ";";
+                }
+                CreateNewMenu("menu="+user.getId(),data.getStringExtra(String.valueOf(R.string.title)),account.getName(),date.toString(),data.getStringExtra(String.valueOf(R.string.intro)),
+                        ingredient,p);
+            }
+        }else if(requestCode == REQUEST_LOGIN){
+            if(resultCode == RESULT_OK){
+                config = new SyncConfiguration.Builder(user,"account="+user.getId()).allowWritesOnUiThread(true).build();
+
+                backgroundThreadRealm = Realm.getInstance(config);
+
+                account = backgroundThreadRealm.where(Account.class).equalTo("_partition","account="+user.getId()).findFirst();
+                if(account==null){
+                    backgroundThreadRealm.executeTransaction(realm -> {
+                        Account a = new Account();
+                        a.set_partition("account="+user.getId());
+                        a.set_id(ObjectId.get().toString());
+                        a.setAccount("");
+                        a.setFavor_menu_list("");
+                        a.setHistory_menu_id_list("");
+                        a.setOwn_menu_id_list("");
+                        a.setPassword("");
+                        realm.insertOrUpdate(a);
+                    });
+                    account = backgroundThreadRealm.where(Account.class).equalTo("_partition","account="+user.getId()).findFirst();
+                }
+                name_field.setText(account.getName());
+                email_field.setText(account.getName());
+
             }
         }
     }
@@ -498,15 +540,11 @@ public class MainActivity extends AppCompatActivity {
         i.putExtra(String.valueOf(R.string.username),u.getEmail());
         i.putExtra(String.valueOf(R.string.id),u.get_id());
         i.putExtra(String.valueOf(R.string.name),u.getName());
-        i.putExtra(String.valueOf(R.string.age),u.getAge());
+        i.putExtra(String.valueOf(R.string.age),u.getAge().toString());
         i.putExtra(String.valueOf(R.string.phone_number),u.getPhone_number());
         i.putExtra(String.valueOf(R.string.email),u.getEmail());
         i.putExtra(String.valueOf(R.string.change),false);
         startActivityForResult(i, REQUEST_PERSONAL);
-    }
-
-    public boolean startSetting(){
-        return false;
     }
 
     //TODO:Start CreateMenuActivity and set request signal
@@ -521,75 +559,55 @@ public class MainActivity extends AppCompatActivity {
         intent.putExtra(String.valueOf(R.string.title),m.getTitle());
         intent.putExtra(String.valueOf(R.string.author),m.getAuthor());
         intent.putExtra(String.valueOf(R.string.intro),m.getIntroduction());
-        String[] ingredient = new String[m.getIngredient().size()];
-        for(int i =0;i<m.getIngredient().size();i++){
-            ingredient[i] = m.getIngredient().get(i);
-        }
-        String[] process =  new String[m.getProcess().size()];
-        for(int i =0;i<m.getProcess().size();i++){
-            process[i] = m.getProcess().get(i);
-        }
+        String[] ingredient = m.getIngredient().split(";");
+        String[] process = m.getProcess().split(";");
         intent.putExtra(String.valueOf(R.string.ingredient),ingredient);
         intent.putExtra(String.valueOf(R.string.process),process);
         startActivityForResult(intent, REQUEST_CREATE);
     }
 
-    //Close Realm
-    @Override
-    protected void onStop () {
-        super.onStop();
-
-        if(backgroundThreadRealm!=null){
-            backgroundThreadRealm.close();
-        }
-    }
-
-    @Override
-    protected void onDestroy () {
-        super.onDestroy();
-
-        backgroundThreadRealm.close();
-
-    }
-
     public void addMenusToFavor(comp4905.carleton.cookingapplication.Model.Menu menu){
         favor_menus_list.add(menu);
-        account.addFavor(menu);
-        updateAccount(account);
+        backgroundThreadRealm.executeTransaction(realm -> {
+            Account inner_account = realm.where(Account.class).equalTo("_id",account.get_id()).findFirst();
+            assert inner_account != null;
+            inner_account.addFavor(menu);
+            realm.insertOrUpdate(inner_account);
+        });
     }
 
-    public boolean removeMenusFromFavor(comp4905.carleton.cookingapplication.Model.Menu menu){
-        if(favor_menus_list.remove(menu)&&account.removeFavor(menu)){
-            updateAccount(account);
-            return true;
-        }else{
-            return false;
-        }
+    public void removeMenusFromFavor(comp4905.carleton.cookingapplication.Model.Menu menu){
+            backgroundThreadRealm.executeTransaction(realm -> {
+                Account inner_account = realm.where(Account.class).equalTo("_id",account.get_id()).findFirst();
+                assert inner_account != null;
+                inner_account.removeFavor(menu);
+                realm.insertOrUpdate(inner_account);
+            });
     }
 
     public void addMenusToHistory(comp4905.carleton.cookingapplication.Model.Menu menu){
         history_menus_list.add(menu);
-        account.addHistory(menu);
-        updateAccount(account);
+        backgroundThreadRealm.executeTransaction(realm -> {
+            Account inner_account = realm.where(Account.class).equalTo("_id",account.get_id()).findFirst();
+            assert inner_account != null;
+            inner_account.addHistory(menu);
+            realm.insertOrUpdate(inner_account);
+        });
     }
 
 
 
-    public void changeUserInfo(String name,int age,String phone_number,String email){
-        account.setName(name);
-        account.setAge(age);
-        account.setPhone_number(phone_number);
-        account.setEmail(email);
-        updateAccount(account);
-    }
-
-    public void CreateNewMenu(comp4905.carleton.cookingapplication.Model.Menu m){
-        account.addOwn(m);
+    public void CreateNewMenu(String partition,String title,String author,String calender,String intro,String ingredient,String process){
         //TODO: update server
-        System.out.println("New menu Create:"+m.toString());
-        insertMenu(m);
+        insertMenu(partition,title,author,calender,intro,ingredient,process);
+        backgroundThreadRealm.executeTransaction(realm -> {
+            comp4905.carleton.cookingapplication.Model.Menu menu = realm.where(comp4905.carleton.cookingapplication.Model.Menu.class).equalTo("_partition","account="+user.getId()).findFirst();
+            Account inner_account = realm.where(Account.class).equalTo("_id",account.get_id()).findFirst();
+            assert inner_account != null;
+            inner_account.addOwn(menu);
+            realm.insertOrUpdate(inner_account);
+        });
     }
-
 
     public RealmList<comp4905.carleton.cookingapplication.Model.Menu> getAllMenu(){
         RealmList<comp4905.carleton.cookingapplication.Model.Menu> all_menu= new RealmList<>();
@@ -601,7 +619,7 @@ public class MainActivity extends AppCompatActivity {
     public RealmList<comp4905.carleton.cookingapplication.Model.Menu> getUsersOwnMenu(){
         RealmList<comp4905.carleton.cookingapplication.Model.Menu> all_menu = getAllMenu();
         RealmList<comp4905.carleton.cookingapplication.Model.Menu> own_menu = new RealmList<>();
-        RealmList<String> index = account.getOwn_menu_id_list();
+        ArrayList<String> index = new ArrayList<>(Arrays.asList(account.getOwn_menu_id_list().split(";")));
         for(int i =0;i<all_menu.size();i++){
             assert all_menu.get(i) != null;
             if(index.contains(all_menu.get(i).get_id())){
@@ -614,7 +632,8 @@ public class MainActivity extends AppCompatActivity {
     public RealmList<comp4905.carleton.cookingapplication.Model.Menu> getUsersFavorMenu(){
         RealmList<comp4905.carleton.cookingapplication.Model.Menu> all_menu = getAllMenu();
         RealmList<comp4905.carleton.cookingapplication.Model.Menu> fav_menu = new RealmList<>();
-        RealmList<String> index = account.getFavor_menu_list();
+        ArrayList<String> index = new ArrayList<>();
+        index.addAll(Arrays.asList(account.getFavor_menu_list().split(";")));
         for(int i =0;i<all_menu.size();i++){
             if(index.contains(all_menu.get(i).get_id())){
                 fav_menu.add(all_menu.get(i));
@@ -626,7 +645,8 @@ public class MainActivity extends AppCompatActivity {
     public RealmList<comp4905.carleton.cookingapplication.Model.Menu> getUsersHistoryMenu(){
         RealmList<comp4905.carleton.cookingapplication.Model.Menu> all_menu = getAllMenu();
         RealmList<comp4905.carleton.cookingapplication.Model.Menu> his_menu = new RealmList<>();
-        RealmList<String> index = account.getHistory_menu_id_list();
+        ArrayList<String> index = new ArrayList<>();
+        index.addAll(Arrays.asList(account.getHistory_menu_id_list().split(";")));
         for(int i =0;i<all_menu.size();i++){
             assert all_menu.get(i) != null;
             assert all_menu.get(i) != null;
@@ -637,44 +657,58 @@ public class MainActivity extends AppCompatActivity {
         return his_menu;
     }
 
-    public void insertMenu(comp4905.carleton.cookingapplication.Model.Menu menu){
-        backgroundThreadRealm.executeTransaction(realm -> realm.insert(menu));
-    }
-
-    public void insertAccount(Account account){
-        backgroundThreadRealm.executeTransaction(realm -> realm.insert(account));
-    }
-
-    public void deleteMenu(comp4905.carleton.cookingapplication.Model.Menu menu){
+    public void insertMenu(String partition,String title,String author,String calender,String intro,String ingredient,String process){
         backgroundThreadRealm.executeTransaction(realm -> {
-            comp4905.carleton.cookingapplication.Model.Menu innermenu = realm.where(comp4905.carleton.cookingapplication.Model.Menu.class).equalTo("_id",menu.get_id()).findFirst();
-            assert innermenu != null;
-            innermenu.deleteFromRealm();
+            comp4905.carleton.cookingapplication.Model.Menu menu = new comp4905.carleton.cookingapplication.Model.Menu();
+            menu.set_id(ObjectId.get().toString());
+            menu.set_partition(partition);
+            menu.setTitle(title);
+            menu.setAuthor(author);
+            menu.setIntroduction(intro);
+            menu.setCalender(calender);
+            menu.setIngredient(ingredient);
+            menu.setProcess(process);
+            realm.insertOrUpdate(menu);
         });
     }
 
-    public void deleteAccount(Account account){
+//    public void deleteMenu(comp4905.carleton.cookingapplication.Model.Menu menu){
+//        backgroundThreadRealm.executeTransaction(realm -> {
+//            comp4905.carleton.cookingapplication.Model.Menu innermenu = realm.where(comp4905.carleton.cookingapplication.Model.Menu.class).equalTo("_id",menu.get_id()).findFirst();
+//            assert innermenu != null;
+//            innermenu.deleteFromRealm();
+//        });
+//    }
+//
+//    public void deleteAccount(Account account){
+//        backgroundThreadRealm.executeTransaction(realm -> {
+//            Account inneraccount = realm.where(Account.class).equalTo("_id",account.get_id()).findFirst();
+//            assert inneraccount != null;
+//            inneraccount.deleteFromRealm();
+//        });
+//    }
+
+//    public void updateMenu(comp4905.carleton.cookingapplication.Model.Menu menu){
+//        backgroundThreadRealm.executeTransaction(realm -> {
+//            comp4905.carleton.cookingapplication.Model.Menu innermenu = realm.where(comp4905.carleton.cookingapplication.Model.Menu.class).equalTo("_id",menu.get_id()).findFirst();
+//            assert innermenu != null;
+//            innermenu.updateMenu(menu);
+//        });
+//    }
+
+    public void updateAccount(String name,int age,String phone_number,String email){
         backgroundThreadRealm.executeTransaction(realm -> {
-            Account inneraccount = realm.where(Account.class).equalTo("_id",account.get_id()).findFirst();
-            assert inneraccount != null;
-            inneraccount.deleteFromRealm();
+            Account inner_account = realm.where(Account.class).equalTo("_id",account.get_id()).findFirst();
+            assert inner_account != null;
+            inner_account.update(name,age,email,phone_number);
+            realm.insertOrUpdate(inner_account);
         });
     }
 
-    public void updateMenu(comp4905.carleton.cookingapplication.Model.Menu menu){
-        backgroundThreadRealm.executeTransaction(realm -> {
-            comp4905.carleton.cookingapplication.Model.Menu innermenu = realm.where(comp4905.carleton.cookingapplication.Model.Menu.class).equalTo("_id",menu.get_id()).findFirst();
-            assert innermenu != null;
-            innermenu.updateMenu(menu);
-        });
-    }
+    @Override
+    protected void onDestroy () {
+        super.onDestroy();
 
-    public void updateAccount(Account account){
-        backgroundThreadRealm.executeTransaction(realm -> {
-            Account inneraccount = realm.where(Account.class).equalTo("_id",account.get_id()).findFirst();
-            assert inneraccount != null;
-            inneraccount.updateAccount(account);
-        });
+        backgroundThreadRealm.close();
     }
-
 }

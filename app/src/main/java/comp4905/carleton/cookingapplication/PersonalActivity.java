@@ -55,9 +55,15 @@ public class PersonalActivity extends AppCompatActivity {
         change_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                int age;
+                if(!age_field.getText().toString().isEmpty()){
+                    age = Integer.parseInt(age_field.getText().toString());
+                }else{
+                    age = 0;
+                }
                 Intent intent = new Intent();
                 intent.putExtra(String.valueOf(R.string.name),name_field.getText().toString());
-                intent.putExtra(String.valueOf(R.string.age),Integer.parseInt(age_field.getText().toString()));
+                intent.putExtra(String.valueOf(R.string.age),age);
                 intent.putExtra(String.valueOf(R.string.phone_number),phone_field.getText().toString());
                 intent.putExtra(String.valueOf(R.string.email),email_field.getText().toString());
                 intent.putExtra(String.valueOf(R.string.change),true);

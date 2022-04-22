@@ -12,6 +12,8 @@ import com.google.android.material.textfield.TextInputEditText;
 
 import org.bson.types.ObjectId;
 
+import java.io.FileNotFoundException;
+
 import comp4905.carleton.cookingapplication.Model.Account;
 import io.realm.ImportFlag;
 import io.realm.Realm;
@@ -29,13 +31,13 @@ public class LoginActivity extends AppCompatActivity {
     private TextInputEditText account_field,password_field;
     private Button login_button,sign_up_button;
     private ImageButton back_button;
-    private Realm backgroundThreadRealm;
     private App taskapp;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
+        Realm.init(this);
         taskapp = new App(new AppConfiguration.Builder(BuildConfig.MONGODB_REALM_APP_ID).defaultSyncErrorHandler(new SyncSession.ErrorHandler() {
             @Override
             public void onError(SyncSession session, AppException error) {
@@ -46,9 +48,6 @@ public class LoginActivity extends AppCompatActivity {
             RealmLog.setLevel(LogLevel.ALL);
         }
 
-        Realm.init(this);
-        RealmConfiguration config = new RealmConfiguration.Builder().name("tracker").build();
-        backgroundThreadRealm = Realm.getInstance(config);
         account_field = findViewById(R.id.account_field);
         password_field = findViewById(R.id.password_field);
         login_button = findViewById(R.id.login_button);
@@ -136,6 +135,7 @@ public class LoginActivity extends AppCompatActivity {
                     if(taskapp.currentUser()!=null){
                         taskapp.switchUser(call.get());
                     }
+                    setResult(RESULT_OK);
                     finish();
                 }
             });
@@ -147,7 +147,6 @@ public class LoginActivity extends AppCompatActivity {
         super.onDestroy();
         // the ui thread realm uses asynchronous transactions, so we can only safely close the realm
         // when the activity ends and we can safely assume that those transactions have completed
-        backgroundThreadRealm.close();
     }
 
     @Override
@@ -155,16 +154,5 @@ public class LoginActivity extends AppCompatActivity {
         super.onStop();
         // the ui thread realm uses asynchronous transactions, so we can only safely close the realm
         // when the activity ends and we can safely assume that those transactions have completed
-        backgroundThreadRealm.executeTransactionAsync(realm -> {
-            Account account = realm.createObject(Account.class, ObjectId.get().toString());
-            account.set_partition("account="+taskapp.currentUser().getId());
-            account.setName("");
-            account.setAge(0);
-            account.setEmail("xxx");
-            account.setPhone_number("xxx-xxx-xxxx");
-            realm.copyToRealmOrUpdate(account);
-        });
-
-        backgroundThreadRealm.close();
     }
 }

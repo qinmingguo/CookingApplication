@@ -44,4 +44,5 @@
     <string name="country">Country</string>
     <string name="id">ID</string>
     <string name="username">Username</string>
+    <string name="own">Own</string>
 </resources>

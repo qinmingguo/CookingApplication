@@ -13,6 +13,7 @@
         android:background="#442C2E">
 
         <TextView
+            android:id="@+id/name_field_header"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="24dp"
