@@ -70,7 +70,7 @@ public class Menu extends RealmObject {
     }
 
     public String toString(){
-        return String.format("{_id: %d, title: %s, author: %s, calendar: %s,ingredient: %s,process: %s",_id,title,author,calender.toString(),ingredient.toString(),process.toString());
+        return String.format("{_id: %s, title: %s, author: %s, calendar: %s,ingredient: %s,process: %s",_id,title,author,calender.toString(),ingredient.toString(),process.toString());
     }
 
     public String get_partition() {

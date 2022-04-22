@@ -85,8 +85,26 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected  void onStart(){
         super.onStart();
+        user = app.currentUser();
 
-        Log.e(TAG,"Realm stay "+backgroundThreadRealm);
+        Realm.init(this);
+        if(MenuThreadRealm==null){
+            config = new SyncConfiguration.Builder(user,"menu").build();
+            MenuThreadRealm = Realm.getInstance(config);
+        }if(backgroundThreadRealm==null){
+            config = new SyncConfiguration.Builder(user,"account="+user.getId()).allowWritesOnUiThread(true).build();
+            backgroundThreadRealm = Realm.getInstance(config);
+        }
+        Log.e(TAG,"Realm stay "+user+account);
+        if(user!=null&&account!=null){
+            if(account.getEmail()!=null&&email_field!=null){
+                email_field.setText(account.getEmail());
+            }
+            if(account.getName()!=null&&name_field!=null){
+                name_field.setText(account.getName());
+            }
+        }
+        Log.i(TAG,"Realm stay "+backgroundThreadRealm);
 
 
     }
@@ -125,8 +143,11 @@ public class MainActivity extends AppCompatActivity {
                     Account a = new Account();
                     a.set_partition("account="+user.getId());
                     a.set_id(ObjectId.get().toString());
-                    a.setAccount("");
+                    a.setAccount("XXX");
                     a.setAge(0);
+                    a.setEmail("XXX@XXX.com");
+                    a.setName("XXX");
+                    a.setPhone_number("000-000-0000");
                     a.setFavor_menu_list("");
                     a.setHistory_menu_id_list("");
                     a.setOwn_menu_id_list("");
@@ -135,6 +156,11 @@ public class MainActivity extends AppCompatActivity {
                 });
                 account = backgroundThreadRealm.where(Account.class).equalTo("_partition","account="+user.getId()).findFirst();
             }
+
+            main_menus_list = getAllMenu();
+            favor_menus_list = getUsersFavorMenu();
+            history_menus_list = getUsersHistoryMenu();
+            user_menus_list = getUsersOwnMenu();
         }
 
         current_menu_value = 0;
@@ -361,7 +387,6 @@ public class MainActivity extends AppCompatActivity {
                         Toast.makeText(MainActivity.this,"Please login first",Toast.LENGTH_SHORT).show();
                         break;
                     }
-
                     if(user_menus_list==null){
                         break;
                     }
@@ -388,16 +413,16 @@ public class MainActivity extends AppCompatActivity {
                         Button go_button = new_menu.findViewById(R.id.menu_go_button);
                         int index = i;
                         go_button.setOnClickListener(view -> {
-                            //TODO: Go to Menu Read Activity.
+                            // Go to Menu Read Activity.
                             startReadMenu(user_menus_list.get(index));
                             addMenusToHistory(user_menus_list.get(index));
 
                         });
                         MaterialButton favor_button = new_menu.findViewById(R.id.menu_add_favor_button);
-                        //TODO: handle favor button part
+                        // handle favor button part
                         favor_button.setOnClickListener(view -> {
                             if(account!=null){
-                                //TODO: Add to favor
+                                // Add to favor
                                 if(favor_menus_list.contains(user_menus_list.get(index))){
                                     favor_button.setIconTint(ColorStateList.valueOf(getResources().getColor(R.color.purple_500)));
                                     removeMenusFromFavor(user_menus_list.get(index));
@@ -420,7 +445,7 @@ public class MainActivity extends AppCompatActivity {
                     Log.i(TAG,"Information Button is pressed");
                     // Action goes here
                     if(user!=null&&account!=null){
-                        Log.e(TAG,account.toString());
+                        Log.i(TAG,account.toString());
                         startPersonalActivity(account);
                     }else if(user != null){
                         account = backgroundThreadRealm.where(Account.class).equalTo("_partition","account="+user.getId()).findFirst();
@@ -434,8 +459,6 @@ public class MainActivity extends AppCompatActivity {
                     Log.i(TAG,"Setting Button clicked");
                     // Action goes here
                     startActivityForResult(new Intent(MainActivity.this,SettingActivity.class),REQUEST_SETTING);
-
-
                     break;
             }
             return false;
@@ -458,12 +481,61 @@ public class MainActivity extends AppCompatActivity {
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
+//                Intent intent = new Intent(MainActivity.this,SearchableActivity.class);
+//                intent.setAction(Intent.ACTION_SEARCH);
+//                intent.putExtra(SearchManager.QUERY,searchView.getQuery().toString());
+//                startActivityForResult(intent,REQUEST_SEARCH);
 
-                MenuThreadRealm.close();
-                Intent intent = new Intent(MainActivity.this,SearchableActivity.class);
-                intent.setAction(Intent.ACTION_SEARCH);
-                intent.putExtra(SearchManager.QUERY,searchView.getQuery().toString());
-                startActivityForResult(intent,REQUEST_SEARCH);
+                RealmResults<comp4905.carleton.cookingapplication.Model.Menu> menus = MenuThreadRealm.where(comp4905.carleton.cookingapplication.Model.Menu.class).contains("title",query).findAll();
+
+                Log.i(TAG,"this :"+menus.toString());
+                if(menus.size()==0){
+                    Toast.makeText(MainActivity.this,"No Search Result",Toast.LENGTH_SHORT).show();
+                }
+                current_table_row= null;
+                current_menu_value = 0;
+                topAppBar.setTitle(R.string.search);
+                //Clean main table menu items.
+                main_table.removeAllViews();
+                for(int i = current_menu_value;i<current_menu_value+6&&i<menus.size();i++){
+                    if(current_table_row==null||current_table_row.getChildCount()==2){
+                        current_table_row = new TableRow(MainActivity.this);
+                        main_table.addView(current_table_row);
+                    }
+                    View new_menu = getLayoutInflater().inflate(R.layout.table_item,null);
+                    TextView title_text_view = new_menu.findViewById(R.id.menu_title_field);
+                    title_text_view.setText(menus.get(i).getTitle());
+                    TextView author_text_view = new_menu.findViewById(R.id.menu_author_field);
+                    author_text_view.setText(menus.get(i).getAuthor());
+                    TextView intro_text_view = new_menu.findViewById(R.id.menu_intro_field);
+                    intro_text_view.setText(menus.get(i).getIntroduction());
+                    Button go_button = new_menu.findViewById(R.id.menu_go_button);
+                    int index = i;
+                    go_button.setOnClickListener(view -> {
+                        //Go to Menu Read Activity.
+                        startReadMenu(menus.get(index));
+                        addMenusToHistory(menus.get(index));
+                    });
+                    MaterialButton favor_button = new_menu.findViewById(R.id.menu_add_favor_button);
+                    // handle favor button part
+                    favor_button.setOnClickListener(view -> {
+                        if(account!=null){
+                            // Add to favor
+                            if(favor_menus_list.contains(main_menus_list.get(index))){
+                                favor_button.setIconTint(ColorStateList.valueOf(getResources().getColor(R.color.purple_500)));
+                                removeMenusFromFavor(main_menus_list.get(index));
+                            }else{
+                                favor_button.setIconTint(ColorStateList.valueOf(getResources().getColor(R.color.purple_200)));
+                                addMenusToFavor(main_menus_list.get(index));
+                            }
+                        }else{
+                            Toast.makeText(MainActivity.this,"Please login first",Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                    current_table_row.addView(new_menu);
+                    System.out.println("New View added: "+current_menu_value);
+                    current_menu_value++;
+                }
                 return true;
             }
 
@@ -525,21 +597,17 @@ public class MainActivity extends AppCompatActivity {
             }
         }else if(requestCode == REQUEST_LOGIN){
             if(resultCode == RESULT_OK){
-                config = new SyncConfiguration.Builder(user,"account="+user.getId()).allowWritesOnUiThread(true).build();
-
-                backgroundThreadRealm = Realm.getInstance(config);
-
-                config = new SyncConfiguration.Builder(user,"menu").allowWritesOnUiThread(true).build();
-
-                MenuThreadRealm = Realm.getInstance(config);
-
                 account = backgroundThreadRealm.where(Account.class).equalTo("_partition","account="+user.getId()).findFirst();
                 if(account==null){
                     backgroundThreadRealm.executeTransaction(realm -> {
                         Account a = new Account();
                         a.set_partition("account="+user.getId());
                         a.set_id(ObjectId.get().toString());
-                        a.setAccount("");
+                        a.setAccount("XXX");
+                        a.setAge(0);
+                        a.setEmail("XXX@XXX.com");
+                        a.setName("XXX");
+                        a.setPhone_number("000-000-0000");
                         a.setFavor_menu_list("");
                         a.setHistory_menu_id_list("");
                         a.setOwn_menu_id_list("");
@@ -551,18 +619,14 @@ public class MainActivity extends AppCompatActivity {
                 name_field.setText(account.getName());
                 email_field.setText(account.getName());
             }
-        }else if(requestCode == REQUEST_SEARCH){
-            if(resultCode == RESULT_OK){
-                if(MenuThreadRealm==null){
-                    config = new SyncConfiguration.Builder(user,"menu").build();
-                    MenuThreadRealm = Realm.getInstance(config);
-                }
-                Toast.makeText(this,"No Search Result",Toast.LENGTH_SHORT).show();
-            }else{
-                config = new SyncConfiguration.Builder(user,"menu").build();
-                MenuThreadRealm = Realm.getInstance(config);
-            }
         }
+//        else if(requestCode == REQUEST_SEARCH){
+//            if(resultCode == RESULT_OK){
+//                Toast.makeText(this,"No Search Result",Toast.LENGTH_SHORT).show();
+//            }else{
+//                return;
+//            }
+//        }
     }
 
     //TODO: Start PersonalActivity and pass User's Information and set request signal
@@ -646,7 +710,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public RealmList<comp4905.carleton.cookingapplication.Model.Menu> getUsersOwnMenu(){
-        RealmList<comp4905.carleton.cookingapplication.Model.Menu> all_menu = getAllMenu();
+        RealmList<comp4905.carleton.cookingapplication.Model.Menu> all_menu = main_menus_list;
         RealmList<comp4905.carleton.cookingapplication.Model.Menu> own_menu = new RealmList<>();
         ArrayList<String> index = new ArrayList<>(Arrays.asList(account.getOwn_menu_id_list().split(";")));
         for(int i =0;i<all_menu.size();i++){
@@ -659,7 +723,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public RealmList<comp4905.carleton.cookingapplication.Model.Menu> getUsersFavorMenu(){
-        RealmList<comp4905.carleton.cookingapplication.Model.Menu> all_menu = getAllMenu();
+        RealmList<comp4905.carleton.cookingapplication.Model.Menu> all_menu = main_menus_list;
         RealmList<comp4905.carleton.cookingapplication.Model.Menu> fav_menu = new RealmList<>();
         ArrayList<String> index = new ArrayList<>();
         index.addAll(Arrays.asList(account.getFavor_menu_list().split(";")));
@@ -672,7 +736,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public RealmList<comp4905.carleton.cookingapplication.Model.Menu> getUsersHistoryMenu(){
-        RealmList<comp4905.carleton.cookingapplication.Model.Menu> all_menu = getAllMenu();
+        RealmList<comp4905.carleton.cookingapplication.Model.Menu> all_menu = main_menus_list;
         RealmList<comp4905.carleton.cookingapplication.Model.Menu> his_menu = new RealmList<>();
         ArrayList<String> index = new ArrayList<>();
         index.addAll(Arrays.asList(account.getHistory_menu_id_list().split(";")));
@@ -747,7 +811,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onStop () {
         super.onStop();
 
-        MenuThreadRealm.close();
     }
 
 }
