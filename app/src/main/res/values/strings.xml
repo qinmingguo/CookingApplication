@@ -45,4 +45,5 @@
     <string name="id">ID</string>
     <string name="username">Username</string>
     <string name="own">Own</string>
+    <string name="record">Record</string>
 </resources>

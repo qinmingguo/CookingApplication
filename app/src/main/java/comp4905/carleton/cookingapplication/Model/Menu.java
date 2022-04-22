@@ -23,6 +23,8 @@ public class Menu extends RealmObject {
     private String _id;
     @Required
     private String _partition;
+    @Required
+    private String author_id;
     private String author;
     private String calender;
     @Required
@@ -82,6 +84,14 @@ public class Menu extends RealmObject {
     }
     public String setIntroduction(String i) {
         return introduction = i;
+    }
+
+    public String getAuthor_id() {
+        return author_id;
+    }
+
+    public void setAuthor_id(String author_id) {
+        this.author_id = author_id;
     }
 }
 

@@ -34,6 +34,7 @@ public class ReadMenuActivity extends AppCompatActivity {
         topAppBar.setNavigationOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View view) {
+
                 finish();
             }
         });
