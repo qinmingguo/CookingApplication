@@ -24,7 +24,7 @@ import java.util.ArrayList;
 
 public class AddMenuActivity extends AppCompatActivity {
     private ImageButton add_ingredient_button,add_process_button;
-    private EditText title_field;
+    private EditText title_field,introduction_field;
     private Button confirm_button;
     private MaterialToolbar topAppBar;
     private ArrayList<EditText> ingredient_text_field_list;
@@ -38,20 +38,22 @@ public class AddMenuActivity extends AppCompatActivity {
         ingredient_text_field_list = new ArrayList<EditText>();
         process_text_field_list = new ArrayList<EditText>();
 
-        add_ingredient_button = (ImageButton) findViewById(R.id.Add_Ingredient_Button);
 
-        add_process_button = (ImageButton) findViewById(R.id.Add_Process_Button);
+        add_ingredient_button = findViewById(R.id.Add_Ingredient_Button);
 
-        title_field = (EditText) findViewById(R.id.Title_text_field);
+        add_process_button = findViewById(R.id.Add_Process_Button);
 
-        ingredient_text_field_list.add((EditText) findViewById(R.id.Ingredient_text_field_1));
+        title_field = findViewById(R.id.Title_text_field);
+        introduction_field = findViewById(R.id.introduction_field_add);
 
-        process_text_field_list.add((EditText) findViewById(R.id.Process_text_field_1));
+        ingredient_text_field_list.add( findViewById(R.id.Ingredient_text_field_1));
+
+        process_text_field_list.add( findViewById(R.id.Process_text_field_1));
 
 
-        confirm_button = (Button) findViewById(R.id.confirm_button_add);
+        confirm_button =  findViewById(R.id.confirm_button_add);
 
-        topAppBar = (MaterialToolbar) findViewById(R.id.topAppBar_add);
+        topAppBar = findViewById(R.id.topAppBar_add);
         setSupportActionBar(topAppBar);
 
         //stop activity and back to MainActivity
@@ -89,6 +91,7 @@ public class AddMenuActivity extends AppCompatActivity {
             public void onClick(View view) {
                 Toast.makeText(AddMenuActivity.this,"Confirm is pressed",Toast.LENGTH_SHORT).show();
                 Intent intent = new Intent();
+                intent.putExtra(String.valueOf(R.string.introduction),introduction_field.getText().toString());
                 intent.putExtra(String.valueOf(R.string.title),title_field.getText().toString());
                 String[] ingredient = new String[ingredient_text_field_list.size()];
                 for(int i =0;i<ingredient_text_field_list.size();i++){

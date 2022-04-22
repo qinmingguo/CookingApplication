@@ -85,28 +85,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected  void onStart(){
         super.onStart();
-        user = app.currentUser();
-
-        Realm.init(this);
-        if(MenuThreadRealm==null){
-            config = new SyncConfiguration.Builder(user,"menu").build();
-            MenuThreadRealm = Realm.getInstance(config);
-        }if(backgroundThreadRealm==null){
-            config = new SyncConfiguration.Builder(user,"account="+user.getId()).allowWritesOnUiThread(true).build();
-            backgroundThreadRealm = Realm.getInstance(config);
-        }
-        Log.e(TAG,"Realm stay "+user+account);
-        if(user!=null&&account!=null){
-            if(account.getEmail()!=null&&email_field!=null){
-                email_field.setText(account.getEmail());
-            }
-            if(account.getName()!=null&&name_field!=null){
-                name_field.setText(account.getName());
-            }
-        }
-        Log.i(TAG,"Realm stay "+backgroundThreadRealm);
-
-
     }
 
     @Override
@@ -135,6 +113,8 @@ public class MainActivity extends AppCompatActivity {
 
             MenuThreadRealm = Realm.getInstance(config);
 
+
+            System.out.println(user.getId());
             account = backgroundThreadRealm.where(Account.class).equalTo("_partition","account="+user.getId()).findFirst();
             //check account is vaild
             if(account==null){
@@ -145,7 +125,7 @@ public class MainActivity extends AppCompatActivity {
                     a.set_id(ObjectId.get().toString());
                     a.setAccount("XXX");
                     a.setAge(0);
-                    a.setEmail("XXX@XXX.com");
+                    a.setEmail(user.getCustomData().getString("name"));
                     a.setName("XXX");
                     a.setPhone_number("000-000-0000");
                     a.setFavor_menu_list("");
@@ -165,6 +145,14 @@ public class MainActivity extends AppCompatActivity {
 
         current_menu_value = 0;
 
+        if(user!=null&&account!=null){
+            if(account.getEmail()!=null&&email_field!=null){
+                email_field.setText(account.getEmail());
+            }
+            if(account.getName()!=null&&name_field!=null){
+                name_field.setText(account.getName());
+            }
+        }
         //link main frame
         main_table =  findViewById(R.id.main_table);
 
@@ -574,7 +562,7 @@ public class MainActivity extends AppCompatActivity {
         }else if (requestCode == REQUEST_SETTING) {
             if(resultCode == RESULT_OK) {
                 //handle setting result
-                startActivity(new Intent(this,LoginActivity.class));
+                startActivityForResult(new Intent(this,LoginActivity.class),REQUEST_LOGIN);
             }
         }else if (requestCode == REQUEST_CREATE) {
             if(resultCode == RESULT_OK) {
@@ -592,11 +580,12 @@ public class MainActivity extends AppCompatActivity {
                     p += s;
                     p += ";";
                 }
-                CreateNewMenu(account.get_id(),data.getStringExtra(String.valueOf(R.string.title)),account.getName(),date.toString(),data.getStringExtra(String.valueOf(R.string.intro)),
+                CreateNewMenu(account.get_id(),data.getStringExtra(String.valueOf(R.string.title)),account.getName(),date.toString(),String.valueOf(R.string.introduction),
                         ingredient,p);
             }
         }else if(requestCode == REQUEST_LOGIN){
             if(resultCode == RESULT_OK){
+                user = app.currentUser();
                 account = backgroundThreadRealm.where(Account.class).equalTo("_partition","account="+user.getId()).findFirst();
                 if(account==null){
                     backgroundThreadRealm.executeTransaction(realm -> {
@@ -605,7 +594,7 @@ public class MainActivity extends AppCompatActivity {
                         a.set_id(ObjectId.get().toString());
                         a.setAccount("XXX");
                         a.setAge(0);
-                        a.setEmail("XXX@XXX.com");
+                        a.setEmail(user.getCustomData().getString("name"));
                         a.setName("XXX");
                         a.setPhone_number("000-000-0000");
                         a.setFavor_menu_list("");
