@@ -11,38 +11,37 @@ import java.util.Calendar;
 import io.realm.RealmList;
 import io.realm.RealmObject;
 import io.realm.annotations.PrimaryKey;
+import io.realm.annotations.RealmClass;
 import io.realm.annotations.Required;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+@RealmClass
 public class Menu extends RealmObject {
     @PrimaryKey
     @Required
     private String _id;
-
     @Required
     private String _partition;
-    private String title;
     private String author;
     private String calender;
+    @Required
+    private String ingredient;
     private String introduction;
     @Required
-    private RealmList<String> ingredient;
-    @Required
-    private RealmList<String> process;
-
-
+    private String process;
+    private String title;
     // Standard getters & setters
     public String get_id() { return _id; }
+    public void set_id(String _id) { this._id = _id; }
     public String getAuthor() { return author; }
     public void setAuthor(String author) { this.author = author; }
     public String getCalender() { return calender; }
     public void setCalender(String calender) { this.calender = calender; }
-    public RealmList<String> getIngredient() { return ingredient; }
-    public void setIngredient(RealmList<String> ingredient) { this.ingredient = ingredient; }
-    public RealmList<String> getProcess() { return process; }
-    public void setProcess(RealmList<String> process) { this.process = process; }
-
+    public String getIngredient() { return ingredient; }
+    public void setIngredient(String ingredient) { this.ingredient = ingredient; }
+    public String getProcess() { return process; }
+    public void setProcess(String process) { this.process = process; }
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
 
@@ -86,3 +85,47 @@ public class Menu extends RealmObject {
     }
 }
 
+//{
+//        "bsonType": "object",
+//        "properties": {
+//        "_id": {
+//        "bsonType": "string"
+//        },
+//        "_partition": {
+//        "bsonType": "string"
+//        },
+//        "title": {
+//        "bsonType": "string"
+//        },
+//        "author": {
+//        "bsonType": "string"
+//        },
+//        "calender": {
+//        "bsonType": "int"
+//        },
+//        "introduction": {
+//        "bsonType": "string"
+//        },
+//        "ingredient": {
+//        "bsonType": "array",
+//        "items": {
+//        "bsonType": "string"
+//        }
+//        },
+//        "process": {
+//        "bsonType": "array",
+//        "items": {
+//        "bsonType": "string"
+//        }
+//        }
+//        },
+//        "required": [
+//        "_id",
+//        "_partition",
+//        "account",
+//        "password",
+//        "ingredient",
+//        "process"
+//        ],
+//        "title": "Menu"
+//        }
