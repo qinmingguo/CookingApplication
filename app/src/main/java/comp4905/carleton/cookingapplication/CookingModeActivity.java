@@ -152,18 +152,6 @@ public class CookingModeActivity extends AppCompatActivity {
         speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
         speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
         speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, true);
-        speechRecognizerIntent.putExtra(
-                RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS,
-                5000
-        );
-        speechRecognizerIntent.putExtra(
-                RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS,
-                5000
-        );
-        speechRecognizerIntent.putExtra(
-                RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS,
-                5000
-        );
         speechRecognizer.setRecognitionListener(new RecognitionListener() {
             @Override
             public void onReadyForSpeech(Bundle bundle) {
@@ -184,22 +172,17 @@ public class CookingModeActivity extends AppCompatActivity {
 
             @Override
             public void onBufferReceived(byte[] bytes) {
-                Log.i(TAG,"received buffer");
 
             }
 
             @Override
             public void onEndOfSpeech() {
                 Log.i(TAG,"end to recognizer");
-                if(OnRecord){
-                    speechRecognizer.startListening(speechRecognizerIntent);
-                }else{
-
-                }
             }
 
             @Override
             public void onError(int i) {
+                speechRecognizer.startListening(speechRecognizerIntent);
 
             }
 
@@ -207,12 +190,16 @@ public class CookingModeActivity extends AppCompatActivity {
             public void onResults(Bundle bundle) {
                 ArrayList<String> data = bundle.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
                 Log.i(TAG,"get  result:"+data);
+                if(data==null){
+                    speechRecognizer.startListening(speechRecognizerIntent);
+                    return;
+                }
                 if(data.contains("next")){
                     next_button.performClick();
                     Toast.makeText(CookingModeActivity.this,"Next Page",Toast.LENGTH_SHORT);
                     if(current_step == page.size()-1){
                         Log.i(TAG,"last page");
-                        speechRecognizer.stopListening();
+                        mic_button.performClick();
                     }else{
                         speechRecognizer.startListening(speechRecognizerIntent);
                     }
@@ -222,7 +209,7 @@ public class CookingModeActivity extends AppCompatActivity {
                     speechRecognizer.startListening(speechRecognizerIntent);
                 }else if(data.contains("end")||data.contains("and")){
                     Log.i(TAG,"end read");
-                    speechRecognizer.stopListening();
+                    mic_button.performClick();
                     finish();
                 }else if(data.contains("stop")){
                     Log.i(TAG,"stop record");
@@ -238,7 +225,6 @@ public class CookingModeActivity extends AppCompatActivity {
 
             @Override
             public void onEvent(int i, Bundle bundle) {
-                Log.i(TAG,"on event");
             }
         });
         Log.i(TAG,"Start to record"+SpeechRecognizer.isRecognitionAvailable(this));
