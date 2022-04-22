@@ -2,6 +2,7 @@ package comp4905.carleton.cookingapplication;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SearchView;
+import androidx.core.widget.NestedScrollView;
 import androidx.drawerlayout.widget.DrawerLayout;
 
 import android.app.SearchManager;
@@ -61,7 +62,11 @@ public class MainActivity extends AppCompatActivity {
 
     private NavigationView navigationView;
 
+    private NestedScrollView scrollView;
+
     private TextView email_field,name_field;
+
+    private Button more_button;
 
     //Number of table menu store
     private int current_menu_value;
@@ -166,8 +171,16 @@ public class MainActivity extends AppCompatActivity {
         //link navigation view.
         drawerLayout =  findViewById(R.id.drawerLayout);
         navigationView =  findViewById(R.id.sidebar);
-        email_field = (TextView)navigationView.getHeaderView(R.id.email_field_header);
-        name_field = (TextView)navigationView.getHeaderView(R.id.name_field_header);
+
+        View headerLayout =  navigationView.inflateHeaderView(R.layout.header_navigation_drawer);
+        email_field = (TextView)headerLayout.findViewById(R.id.email_field_header);
+        name_field = (TextView)headerLayout.findViewById(R.id.name_field_header);
+        name_field.setText(account.getName());
+        email_field.setText(account.getEmail());
+        scrollView = findViewById(R.id.scroll_view);
+        more_button = findViewById(R.id.more_button);
+        more_button.setVisibility(View.INVISIBLE);
+        more_button.setEnabled(false);
 
 
         //handle the side bar selection.
@@ -191,9 +204,11 @@ public class MainActivity extends AppCompatActivity {
                     main_table.removeAllViews();
                     current_table_row= null;
                     current_menu_value = 0;
+                    more_button.setVisibility(View.INVISIBLE);
 
                     // Action goes here
-                    for(int i = current_menu_value;i<current_menu_value+6&&i<main_menus_list.size();i++){
+                    int local_main_value_out = current_menu_value;
+                    for(int i = current_menu_value;(i<local_main_value_out+6)&&(i<main_menus_list.size());i++){
                         if(current_table_row==null||current_table_row.getChildCount()==2){
                             current_table_row = new TableRow(MainActivity.this);
                             main_table.addView(current_table_row);
@@ -233,9 +248,75 @@ public class MainActivity extends AppCompatActivity {
                             }
                         });
                         current_table_row.addView(new_menu);
-                        System.out.println("New View added: "+current_menu_value);
+//                        System.out.println("New View added: "+current_menu_value);
                         current_menu_value++;
                     }
+                    more_button.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            int local_main_value_in = current_menu_value;
+                            for(int i = current_menu_value;(i<local_main_value_in+6)&&i<main_menus_list.size();i++){
+                                if(current_table_row==null||current_table_row.getChildCount()==2){
+                                    current_table_row = new TableRow(MainActivity.this);
+                                    main_table.addView(current_table_row);
+                                }
+                                View new_menu = getLayoutInflater().inflate(R.layout.table_item,null);
+                                TextView title_text_view = new_menu.findViewById(R.id.menu_title_field);
+                                title_text_view.setText(main_menus_list.get(i).getTitle());
+                                TextView author_text_view = new_menu.findViewById(R.id.menu_author_field);
+                                author_text_view.setText(main_menus_list.get(i).getAuthor());
+                                TextView intro_text_view = new_menu.findViewById(R.id.menu_intro_field);
+                                intro_text_view.setText(main_menus_list.get(i).getIntroduction());
+                                Button go_button = new_menu.findViewById(R.id.menu_go_button);
+                                int index = i;
+                                go_button.setOnClickListener(view -> {
+                                    // Go to Menu Read Activity.
+                                    startReadMenu(main_menus_list.get(index));
+                                    addMenusToHistory(main_menus_list.get(index));
+                                });
+                                MaterialButton favor_button = new_menu.findViewById(R.id.menu_add_favor_button);
+
+                                // handle favor button part
+                                if(favor_menus_list.contains(main_menus_list.get(i))){
+                                    favor_button.setIconTint(ColorStateList.valueOf(getResources().getColor(R.color.purple_200)));
+                                }
+                                favor_button.setOnClickListener(view -> {
+                                    if(account!=null){
+                                        // Add to favor
+                                        if(favor_menus_list.contains(main_menus_list.get(index))){
+                                            favor_button.setIconTint(ColorStateList.valueOf(getResources().getColor(R.color.purple_500)));
+                                            removeMenusFromFavor(main_menus_list.get(index));
+                                        }else{
+                                            favor_button.setIconTint(ColorStateList.valueOf(getResources().getColor(R.color.purple_200)));
+                                            addMenusToFavor(main_menus_list.get(index));
+                                        }
+                                    }else{
+                                        Toast.makeText(MainActivity.this,"Please login first",Toast.LENGTH_SHORT).show();
+                                    }
+                                });
+                                current_table_row.addView(new_menu);
+//                                System.out.println("New View added: "+current_menu_value);
+                                current_menu_value++;
+                            }
+                            more_button.setVisibility(View.INVISIBLE);
+                        }
+                    });
+                    scrollView.setOnScrollChangeListener(new NestedScrollView.OnScrollChangeListener() {
+                        @Override
+                        public void onScrollChange(NestedScrollView v, int scrollX, int scrollY, int oldScrollX, int oldScrollY) {
+                            if (scrollY == (v.getChildAt(0).getMeasuredHeight() - v.getMeasuredHeight())) {
+                                Log.i(TAG, "BOTTOM SCROLL");
+                                if(current_menu_value<main_menus_list.size()){
+                                    more_button.setVisibility(View.VISIBLE);
+                                    more_button.setEnabled(true);
+                                }
+                            }
+                            if (scrollY < (v.getChildAt(0).getMeasuredHeight() - v.getMeasuredHeight())) {
+                                more_button.setVisibility(View.INVISIBLE);
+                                more_button.setEnabled(false);
+                            }
+                        }
+                    });
                     break;
                 case R.id.Favourite_Menu_Button:
                     // Change table to Favorite
@@ -260,9 +341,11 @@ public class MainActivity extends AppCompatActivity {
                     main_table.removeAllViews();
                     current_table_row= null;
                     current_menu_value = 0;
+                    more_button.setVisibility(View.INVISIBLE);
 
                     // Action goes here
-                    for(int i = current_menu_value;i<current_menu_value+6&&i<favor_menus_list.size();i++){
+                    int local_value_favor_out = current_menu_value;
+                    for(int i = current_menu_value;(i<local_value_favor_out+6)&&i<favor_menus_list.size();i++){
                         if(current_table_row==null||current_table_row.getChildCount()==2){
                             current_table_row = new TableRow(MainActivity.this);
                             main_table.addView(current_table_row);
@@ -295,9 +378,68 @@ public class MainActivity extends AppCompatActivity {
                             }
                         });
                         current_table_row.addView(new_menu);
-                        System.out.println("New View added: "+current_menu_value);
+//                        System.out.println("New View added: "+current_menu_value);
                         current_menu_value++;
                     }
+                    more_button.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            int local_value_favor_in = current_menu_value;
+                            for(int i = current_menu_value;i<local_value_favor_in+6&&i<favor_menus_list.size();i++){
+                                if(current_table_row==null||current_table_row.getChildCount()==2){
+                                    current_table_row = new TableRow(MainActivity.this);
+                                    main_table.addView(current_table_row);
+                                }
+                                View new_menu = getLayoutInflater().inflate(R.layout.table_item,null);
+                                TextView title_text_view = new_menu.findViewById(R.id.menu_title_field);
+                                title_text_view.setText(favor_menus_list.get(i).getTitle());
+                                TextView author_text_view = new_menu.findViewById(R.id.menu_author_field);
+                                author_text_view.setText(favor_menus_list.get(i).getAuthor());
+                                TextView intro_text_view = new_menu.findViewById(R.id.menu_intro_field);
+                                intro_text_view.setText(favor_menus_list.get(i).getIntroduction());
+                                Button go_button = new_menu.findViewById(R.id.menu_go_button);
+                                int index = i;
+                                go_button.setOnClickListener(view -> {
+                                    //Go to Menu Read Activity.
+                                    startReadMenu(favor_menus_list.get(index));
+                                    addMenusToHistory(favor_menus_list.get(index));
+                                });
+                                MaterialButton favor_button = new_menu.findViewById(R.id.menu_add_favor_button);
+                                // handle favor button part
+                                favor_button.setOnClickListener(view -> {
+                                    if(account!=null){
+                                        //Add to favor
+                                        favor_button.setIconTint(ColorStateList.valueOf(getResources().getColor(R.color.purple_500)));
+                                        removeMenusFromFavor(favor_menus_list.get(index));
+                                        current_table_row = (TableRow) new_menu.getParent();
+                                        current_table_row.removeView(new_menu);
+                                    }else{
+                                        Toast.makeText(MainActivity.this,"Please login first",Toast.LENGTH_SHORT).show();
+                                    }
+                                });
+                                current_table_row.addView(new_menu);
+//                                System.out.println("New View added: "+current_menu_value);
+                                current_menu_value++;
+                            }
+                            more_button.setVisibility(View.INVISIBLE);
+                        }
+                    });
+                    scrollView.setOnScrollChangeListener(new NestedScrollView.OnScrollChangeListener() {
+                        @Override
+                        public void onScrollChange(NestedScrollView v, int scrollX, int scrollY, int oldScrollX, int oldScrollY) {
+                            if (scrollY == (v.getChildAt(0).getMeasuredHeight() - v.getMeasuredHeight())) {
+                                Log.i(TAG, "BOTTOM SCROLL");
+                                if(current_menu_value<favor_menus_list.size()){
+                                    more_button.setVisibility(View.VISIBLE);
+                                    more_button.setEnabled(true);
+                                }
+                            }
+                            if (scrollY < (v.getChildAt(0).getMeasuredHeight() - v.getMeasuredHeight())) {
+                                more_button.setVisibility(View.INVISIBLE);
+                                more_button.setEnabled(false);
+                            }
+                        }
+                    });
                     break;
                 case R.id.History_Menu_Button:
                     //Change table to History
@@ -321,9 +463,11 @@ public class MainActivity extends AppCompatActivity {
                     main_table.removeAllViews();
                     current_table_row= null;
                     current_menu_value = 0;
+                    more_button.setVisibility(View.INVISIBLE);
 
                     // Action goes here
-                    for(int i = current_menu_value;i<current_menu_value+6&&i<history_menus_list.size();i++){
+                    int local_value_history_out = current_menu_value;
+                    for(int i = current_menu_value;i<local_value_history_out+6&&i<history_menus_list.size();i++){
                         if(current_table_row==null||current_table_row.getChildCount()==2){
                             current_table_row = new TableRow(MainActivity.this);
                             main_table.addView(current_table_row);
@@ -359,9 +503,71 @@ public class MainActivity extends AppCompatActivity {
                         });
 //                            }
                         current_table_row.addView(new_menu);
-                        System.out.println("New View added: "+current_menu_value);
+//                        System.out.println("New View added: "+current_menu_value);
                         current_menu_value++;
                     }
+                    more_button.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            int local_value_history_in = current_menu_value;
+                            for(int i = current_menu_value;i<local_value_history_in+6&&i<history_menus_list.size();i++){
+                                if(current_table_row==null||current_table_row.getChildCount()==2){
+                                    current_table_row = new TableRow(MainActivity.this);
+                                    main_table.addView(current_table_row);
+                                }
+                                View new_menu = getLayoutInflater().inflate(R.layout.table_item,null);
+                                TextView title_text_view = new_menu.findViewById(R.id.menu_title_field);
+                                title_text_view.setText(history_menus_list.get(i).getTitle());
+                                TextView author_text_view = new_menu.findViewById(R.id.menu_author_field);
+                                author_text_view.setText(history_menus_list.get(i).getAuthor());
+                                TextView intro_text_view = new_menu.findViewById(R.id.menu_intro_field);
+                                intro_text_view.setText(history_menus_list.get(i).getIntroduction());
+                                Button go_button = new_menu.findViewById(R.id.menu_go_button);
+                                int index = i;
+                                go_button.setOnClickListener(view -> {
+                                    //Go to Menu Read Activity.
+                                    startReadMenu(history_menus_list.get(index));
+                                });
+                                MaterialButton favor_button = new_menu.findViewById(R.id.menu_add_favor_button);
+                                //handle favor button part
+                                favor_button.setOnClickListener(view -> {
+                                    if(account!=null){
+                                        //Add to favor
+                                        if(favor_menus_list.contains(history_menus_list.get(index))){
+                                            favor_button.setIconTint(ColorStateList.valueOf(getResources().getColor(R.color.purple_500)));
+                                            removeMenusFromFavor(history_menus_list.get(index));
+                                        }else{
+                                            favor_button.setIconTint(ColorStateList.valueOf(getResources().getColor(R.color.purple_200)));
+                                            addMenusToFavor(history_menus_list.get(index));
+                                        }
+                                    }else{
+                                        Toast.makeText(MainActivity.this,"Please login first",Toast.LENGTH_SHORT).show();
+                                    }
+                                });
+//                            }
+                                current_table_row.addView(new_menu);
+//                                System.out.println("New View added: "+current_menu_value);
+                                current_menu_value++;
+                            }
+                            more_button.setVisibility(View.INVISIBLE);
+                        }
+                    });
+                    scrollView.setOnScrollChangeListener(new NestedScrollView.OnScrollChangeListener() {
+                        @Override
+                        public void onScrollChange(NestedScrollView v, int scrollX, int scrollY, int oldScrollX, int oldScrollY) {
+                            if (scrollY == (v.getChildAt(0).getMeasuredHeight() - v.getMeasuredHeight())) {
+                                Log.i(TAG, "BOTTOM SCROLL");
+                                if(current_menu_value<history_menus_list.size()){
+                                    more_button.setVisibility(View.VISIBLE);
+                                    more_button.setEnabled(true);
+                                }
+                            }
+                            if (scrollY < (v.getChildAt(0).getMeasuredHeight() - v.getMeasuredHeight())) {
+                                more_button.setVisibility(View.INVISIBLE);
+                                more_button.setEnabled(false);
+                            }
+                        }
+                    });
                     break;
                 case R.id.Own_Menu_Button:
                     // Change table to History
@@ -384,9 +590,11 @@ public class MainActivity extends AppCompatActivity {
                     main_table.removeAllViews();
                     current_table_row= null;
                     current_menu_value = 0;
+                    more_button.setVisibility(View.INVISIBLE);
 
                     // Action goes here
-                    for(int i = current_menu_value;i<current_menu_value+6&&i<user_menus_list.size();i++){
+                    int local_value_owns_out = current_menu_value;
+                    for(int i = current_menu_value;i<local_value_owns_out+6&&i<user_menus_list.size();i++){
                         if(current_table_row==null||current_table_row.getChildCount()==2){
                             current_table_row = new TableRow(MainActivity.this);
                             main_table.addView(current_table_row);
@@ -424,9 +632,73 @@ public class MainActivity extends AppCompatActivity {
                         });
 //                            }
                         current_table_row.addView(new_menu);
-                        System.out.println("New View added: "+current_menu_value);
+//                        System.out.println("New View added: "+current_menu_value);
                         current_menu_value++;
                     }
+                    more_button.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            int local_value_owns_in = current_menu_value;
+                            for(int i = current_menu_value;i<local_value_owns_in+6&&i<user_menus_list.size();i++){
+                                if(current_table_row==null||current_table_row.getChildCount()==2){
+                                    current_table_row = new TableRow(MainActivity.this);
+                                    main_table.addView(current_table_row);
+                                }
+                                View new_menu = getLayoutInflater().inflate(R.layout.table_item,null);
+                                TextView title_text_view = new_menu.findViewById(R.id.menu_title_field);
+                                title_text_view.setText(user_menus_list.get(i).getTitle());
+                                TextView author_text_view = new_menu.findViewById(R.id.menu_author_field);
+                                author_text_view.setText(user_menus_list.get(i).getAuthor());
+                                TextView intro_text_view = new_menu.findViewById(R.id.menu_intro_field);
+                                intro_text_view.setText(user_menus_list.get(i).getIntroduction());
+                                Button go_button = new_menu.findViewById(R.id.menu_go_button);
+                                int index = i;
+                                go_button.setOnClickListener(view -> {
+                                    // Go to Menu Read Activity.
+                                    startReadMenu(user_menus_list.get(index));
+                                    addMenusToHistory(user_menus_list.get(index));
+
+                                });
+                                MaterialButton favor_button = new_menu.findViewById(R.id.menu_add_favor_button);
+                                // handle favor button part
+                                favor_button.setOnClickListener(view -> {
+                                    if(account!=null){
+                                        // Add to favor
+                                        if(favor_menus_list.contains(user_menus_list.get(index))){
+                                            favor_button.setIconTint(ColorStateList.valueOf(getResources().getColor(R.color.purple_500)));
+                                            removeMenusFromFavor(user_menus_list.get(index));
+                                        }else{
+                                            favor_button.setIconTint(ColorStateList.valueOf(getResources().getColor(R.color.purple_200)));
+                                            addMenusToFavor(user_menus_list.get(index));
+                                        }
+                                    }else{
+                                        Toast.makeText(MainActivity.this,"Please login first",Toast.LENGTH_SHORT).show();
+                                    }
+                                });
+//                            }
+                                current_table_row.addView(new_menu);
+//                                System.out.println("New View added: "+current_menu_value);
+                                current_menu_value++;
+                            }
+                            more_button.setVisibility(View.INVISIBLE);
+                        }
+                    });
+                    scrollView.setOnScrollChangeListener(new NestedScrollView.OnScrollChangeListener() {
+                        @Override
+                        public void onScrollChange(NestedScrollView v, int scrollX, int scrollY, int oldScrollX, int oldScrollY) {
+                            if (scrollY == (v.getChildAt(0).getMeasuredHeight() - v.getMeasuredHeight())) {
+                                Log.i(TAG, "BOTTOM SCROLL");
+                                if(current_menu_value<user_menus_list.size()){
+                                    more_button.setVisibility(View.VISIBLE);
+                                    more_button.setEnabled(true);
+                                }
+                            }
+                            if (scrollY < (v.getChildAt(0).getMeasuredHeight() - v.getMeasuredHeight())) {
+                                more_button.setVisibility(View.INVISIBLE);
+                                more_button.setEnabled(false);
+                            }
+                        }
+                    });
                     break;
                 case R.id.Personal_Information_Button:
                     // Start Personal Activity
@@ -476,7 +748,7 @@ public class MainActivity extends AppCompatActivity {
 
                 RealmResults<comp4905.carleton.cookingapplication.Model.Menu> menus = MenuThreadRealm.where(comp4905.carleton.cookingapplication.Model.Menu.class).contains("title",query).findAll();
 
-                Log.i(TAG,"this :"+menus.toString());
+//                Log.i(TAG,"this :"+menus.toString());
                 if(menus.size()==0){
                     Toast.makeText(MainActivity.this,"No Search Result",Toast.LENGTH_SHORT).show();
                 }
@@ -485,7 +757,8 @@ public class MainActivity extends AppCompatActivity {
                 topAppBar.setTitle(R.string.search);
                 //Clean main table menu items.
                 main_table.removeAllViews();
-                for(int i = current_menu_value;i<current_menu_value+6&&i<menus.size();i++){
+                int local_research_value_out = current_menu_value;
+                for(int i = current_menu_value;(i<local_research_value_out+6)&&(i<menus.size());i++){
                     if(current_table_row==null||current_table_row.getChildCount()==2){
                         current_table_row = new TableRow(MainActivity.this);
                         main_table.addView(current_table_row);
@@ -500,30 +773,100 @@ public class MainActivity extends AppCompatActivity {
                     Button go_button = new_menu.findViewById(R.id.menu_go_button);
                     int index = i;
                     go_button.setOnClickListener(view -> {
-                        //Go to Menu Read Activity.
+                        // Go to Menu Read Activity.
                         startReadMenu(menus.get(index));
                         addMenusToHistory(menus.get(index));
                     });
                     MaterialButton favor_button = new_menu.findViewById(R.id.menu_add_favor_button);
+
                     // handle favor button part
+                    if(favor_menus_list.contains(menus.get(i))){
+                        favor_button.setIconTint(ColorStateList.valueOf(getResources().getColor(R.color.purple_200)));
+                    }
                     favor_button.setOnClickListener(view -> {
                         if(account!=null){
                             // Add to favor
-                            if(favor_menus_list.contains(main_menus_list.get(index))){
+                            if(favor_menus_list.contains(menus.get(index))){
                                 favor_button.setIconTint(ColorStateList.valueOf(getResources().getColor(R.color.purple_500)));
-                                removeMenusFromFavor(main_menus_list.get(index));
+                                removeMenusFromFavor(menus.get(index));
                             }else{
                                 favor_button.setIconTint(ColorStateList.valueOf(getResources().getColor(R.color.purple_200)));
-                                addMenusToFavor(main_menus_list.get(index));
+                                addMenusToFavor(menus.get(index));
                             }
                         }else{
                             Toast.makeText(MainActivity.this,"Please login first",Toast.LENGTH_SHORT).show();
                         }
                     });
                     current_table_row.addView(new_menu);
-                    System.out.println("New View added: "+current_menu_value);
+//                    System.out.println("New View added: "+current_menu_value);
                     current_menu_value++;
                 }
+                more_button.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        int local_research_value_in = current_menu_value;
+                        for(int i = current_menu_value;(i<local_research_value_in+6)&&i<menus.size();i++){
+                            if(current_table_row==null||current_table_row.getChildCount()==2){
+                                current_table_row = new TableRow(MainActivity.this);
+                                main_table.addView(current_table_row);
+                            }
+                            View new_menu = getLayoutInflater().inflate(R.layout.table_item,null);
+                            TextView title_text_view = new_menu.findViewById(R.id.menu_title_field);
+                            title_text_view.setText(menus.get(i).getTitle());
+                            TextView author_text_view = new_menu.findViewById(R.id.menu_author_field);
+                            author_text_view.setText(menus.get(i).getAuthor());
+                            TextView intro_text_view = new_menu.findViewById(R.id.menu_intro_field);
+                            intro_text_view.setText(menus.get(i).getIntroduction());
+                            Button go_button = new_menu.findViewById(R.id.menu_go_button);
+                            int index = i;
+                            go_button.setOnClickListener(view -> {
+                                // Go to Menu Read Activity.
+                                startReadMenu(menus.get(index));
+                                addMenusToHistory(menus.get(index));
+                            });
+                            MaterialButton favor_button = new_menu.findViewById(R.id.menu_add_favor_button);
+
+                            // handle favor button part
+                            if(favor_menus_list.contains(menus.get(i))){
+                                favor_button.setIconTint(ColorStateList.valueOf(getResources().getColor(R.color.purple_200)));
+                            }
+                            favor_button.setOnClickListener(view -> {
+                                if(account!=null){
+                                    // Add to favor
+                                    if(favor_menus_list.contains(menus.get(index))){
+                                        favor_button.setIconTint(ColorStateList.valueOf(getResources().getColor(R.color.purple_500)));
+                                        removeMenusFromFavor(menus.get(index));
+                                    }else{
+                                        favor_button.setIconTint(ColorStateList.valueOf(getResources().getColor(R.color.purple_200)));
+                                        addMenusToFavor(menus.get(index));
+                                    }
+                                }else{
+                                    Toast.makeText(MainActivity.this,"Please login first",Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                            current_table_row.addView(new_menu);
+//                            System.out.println("New View added: "+current_menu_value);
+                            current_menu_value++;
+                        }
+                        more_button.setVisibility(View.INVISIBLE);
+                    }
+                });
+                scrollView.setOnScrollChangeListener(new NestedScrollView.OnScrollChangeListener() {
+                    @Override
+                    public void onScrollChange(NestedScrollView v, int scrollX, int scrollY, int oldScrollX, int oldScrollY) {
+                        if (scrollY == (v.getChildAt(0).getMeasuredHeight() - v.getMeasuredHeight())) {
+                            Log.i(TAG, "BOTTOM SCROLL");
+                            if(current_menu_value<main_menus_list.size()){
+                                more_button.setVisibility(View.VISIBLE);
+                                more_button.setEnabled(true);
+                            }
+                        }
+                        if (scrollY < (v.getChildAt(0).getMeasuredHeight() - v.getMeasuredHeight())) {
+                            more_button.setVisibility(View.INVISIBLE);
+                            more_button.setEnabled(false);
+                        }
+                    }
+                });
                 return true;
             }
 
@@ -558,6 +901,8 @@ public class MainActivity extends AppCompatActivity {
                             data.getIntExtra(String.valueOf(R.string.age),0), data.getStringExtra(String.valueOf(R.string.phone_number)),
                             data.getStringExtra(String.valueOf(R.string.email)));
                 }
+                name_field.setText(account.getName());
+                email_field.setText(account.getEmail());
             }
         }else if (requestCode == REQUEST_SETTING) {
             if(resultCode == RESULT_OK) {
@@ -580,7 +925,7 @@ public class MainActivity extends AppCompatActivity {
                     p += s;
                     p += ";";
                 }
-                CreateNewMenu(account.get_id(),data.getStringExtra(String.valueOf(R.string.title)),account.getName(),date.toString(),String.valueOf(R.string.introduction),
+                insertMenu(account.get_id(),data.getStringExtra(String.valueOf(R.string.title)),account.getName(),date.toString(),data.getStringExtra(String.valueOf(R.string.introduction)),
                         ingredient,p);
             }
         }else if(requestCode == REQUEST_LOGIN){
@@ -679,18 +1024,6 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    public void CreateNewMenu(String author_id,String title,String author,String calender,String intro,String ingredient,String process){
-        // update server
-        insertMenu(author_id,title,author,calender,intro,ingredient,process);
-        comp4905.carleton.cookingapplication.Model.Menu menu = MenuThreadRealm.where(comp4905.carleton.cookingapplication.Model.Menu.class).equalTo("author_id",account.get_id()).findFirst();
-        backgroundThreadRealm.executeTransaction(realm -> {
-            Account inner_account = realm.where(Account.class).equalTo("_id",account.get_id()).findFirst();
-            assert inner_account != null;
-            inner_account.addOwn(menu);
-            realm.insertOrUpdate(inner_account);
-        });
-    }
-
     public RealmList<comp4905.carleton.cookingapplication.Model.Menu> getAllMenu(){
         RealmList<comp4905.carleton.cookingapplication.Model.Menu> all_menu= new RealmList<>();
         RealmResults<comp4905.carleton.cookingapplication.Model.Menu> results = MenuThreadRealm.where(comp4905.carleton.cookingapplication.Model.Menu.class).findAll();
@@ -708,6 +1041,7 @@ public class MainActivity extends AppCompatActivity {
                 own_menu.add(all_menu.get(i));
             }
         }
+        System.out.println(own_menu);
         return own_menu;
     }
 
@@ -752,6 +1086,12 @@ public class MainActivity extends AppCompatActivity {
             menu.setIngredient(ingredient);
             menu.setProcess(process);
             realm.insertOrUpdate(menu);
+            backgroundThreadRealm.executeTransaction(r -> {
+                Account inner_account = r.where(Account.class).equalTo("_id",account.get_id()).findFirst();
+                assert inner_account != null;
+                inner_account.addOwn(menu);
+                r.insertOrUpdate(inner_account);
+            });
         });
     }
 
