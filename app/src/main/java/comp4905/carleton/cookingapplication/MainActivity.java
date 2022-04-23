@@ -69,8 +69,6 @@ public class MainActivity extends AppCompatActivity {
 
     private Button more_button;
 
-    private NestedScrollView scrollView;
-
     //Number of table menu store
     private int current_menu_value;
 
@@ -158,7 +156,7 @@ public class MainActivity extends AppCompatActivity {
 
                     // Action goes here
                     int local_main_value_out = current_menu_value;
-                    for(int i = current_menu_value;(i<local_main_value_out+6)&&(i<main_menus_list.size());i++){
+                    for(int i = current_menu_value;(i<local_main_value_out+6)&&(i<client.get_main_menus_list().size());i++){
                         if(current_table_row==null||current_table_row.getChildCount()==2){
                             current_table_row = new TableRow(MainActivity.this);
                             main_table.addView(current_table_row);
@@ -728,7 +726,7 @@ public class MainActivity extends AppCompatActivity {
                     MaterialButton favor_button = new_menu.findViewById(R.id.menu_add_favor_button);
 
                     // handle favor button part
-                    if(favor_menus_list.contains(menus.get(i))){
+                    if(client.get_favor_menus_list().contains(menus.get(i))){
                         favor_button.setIconTint(ColorStateList.valueOf(getResources().getColor(R.color.purple_200)));
                     }
                     favor_button.setOnClickListener(view -> {
