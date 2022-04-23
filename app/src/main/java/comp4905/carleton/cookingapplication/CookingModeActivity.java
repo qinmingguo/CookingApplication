@@ -34,7 +34,7 @@ public class CookingModeActivity extends AppCompatActivity {
 
     private static final int APP_PERMISSIONS_RECORD_AUDIO = 1;
     private SpeechRecognizer speechRecognizer;
-    private TextView process_field;
+    private TextView process_field,speech_text_field;
     private FloatingActionButton back_button,mic_button;
     private Button previous_button,next_button;
     private int current_step;
@@ -68,6 +68,8 @@ public class CookingModeActivity extends AppCompatActivity {
         process = this.getIntent().getStringArrayExtra(String.valueOf(R.string.process));
         ingredient = this.getIntent().getStringArrayExtra(String.valueOf(R.string.ingredient));
         progressBar = findViewById(R.id.progress_bar);
+        speech_text_field = findViewById(R.id.speech_text_field);
+        speech_text_field.setText("Preparing...");
 
         //initial page index
         current_step = 0;
@@ -145,24 +147,22 @@ public class CookingModeActivity extends AppCompatActivity {
         });
 
         //SpeechRecognizer
-
-
         final Intent speechRecognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
         speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
         speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
         speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, true);
+        speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE,this.getPackageName());
         speechRecognizer.setRecognitionListener(new RecognitionListener() {
             @Override
             public void onReadyForSpeech(Bundle bundle) {
-                Toast.makeText(CookingModeActivity.this,"ready to speech",Toast.LENGTH_SHORT);
                 Log.i(TAG,"ready to recognizer");
             }
 
             @Override
             public void onBeginningOfSpeech() {
-                Toast.makeText(CookingModeActivity.this,"begin to speech",Toast.LENGTH_SHORT);
                 Log.i(TAG,"begin to recognizer");
+                speech_text_field.setText("Recording...");
             }
 
             @Override
@@ -178,6 +178,7 @@ public class CookingModeActivity extends AppCompatActivity {
             @Override
             public void onEndOfSpeech() {
                 Log.i(TAG,"end to recognizer");
+                speech_text_field.setText("Ending!");
             }
 
             @Override
@@ -190,33 +191,38 @@ public class CookingModeActivity extends AppCompatActivity {
             public void onResults(Bundle bundle) {
                 ArrayList<String> data = bundle.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
                 Log.i(TAG,"get  result:"+data);
+                speech_text_field.setText("Get \""+data+"\"!");
                 if(data==null){
                     speechRecognizer.startListening(speechRecognizerIntent);
                     return;
                 }
-                if(data.contains("next")){
-                    next_button.performClick();
-                    Toast.makeText(CookingModeActivity.this,"Next Page",Toast.LENGTH_SHORT);
-                    if(current_step == page.size()-1){
-                        Log.i(TAG,"last page");
+                for(int i =0;i<data.size();i++){
+                    if(data.get(i).contains("next")){
+                        next_button.performClick();
+                        Toast.makeText(CookingModeActivity.this,"Next Page",Toast.LENGTH_SHORT);
+                        if(current_step == page.size()-1){
+                            Log.i(TAG,"last page");
+                            mic_button.performClick();
+                        }else{
+                            speechRecognizer.startListening(speechRecognizerIntent);
+                        }
+                    }else if(data.get(i).contains("previous")){
+                        previous_button.performClick();
+                        Toast.makeText(CookingModeActivity.this,"Previous Page",Toast.LENGTH_SHORT);
+                        speechRecognizer.startListening(speechRecognizerIntent);
+                    }else if(data.get(i).contains("end")||data.get(i).contains("and")){
+                        Log.i(TAG,"end read");
+                        mic_button.performClick();
+                        finish();
+                    }else if(data.get(i).contains("stop")){
+                        Log.i(TAG,"stop record");
                         mic_button.performClick();
                     }else{
                         speechRecognizer.startListening(speechRecognizerIntent);
                     }
-                }else if(data.contains("previous")){
-                    previous_button.performClick();
-                    Toast.makeText(CookingModeActivity.this,"Previous Page",Toast.LENGTH_SHORT);
-                    speechRecognizer.startListening(speechRecognizerIntent);
-                }else if(data.contains("end")||data.contains("and")){
-                    Log.i(TAG,"end read");
-                    mic_button.performClick();
-                    finish();
-                }else if(data.contains("stop")){
-                    Log.i(TAG,"stop record");
-                    mic_button.performClick();
-                }else{
-                    speechRecognizer.startListening(speechRecognizerIntent);
                 }
+
+
             }
 
             @Override
@@ -227,7 +233,6 @@ public class CookingModeActivity extends AppCompatActivity {
             public void onEvent(int i, Bundle bundle) {
             }
         });
-        Log.i(TAG,"Start to record"+SpeechRecognizer.isRecognitionAvailable(this));
         AlertDialog.Builder builder = new AlertDialog.Builder(CookingModeActivity.this);
         builder.setMessage("Are you Ready?");
         builder.setPositiveButton("Ready", new DialogInterface.OnClickListener() {

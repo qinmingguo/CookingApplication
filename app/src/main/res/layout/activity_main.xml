@@ -33,10 +33,12 @@
                 app:menu = "@menu/setting_menu"/>
 
         </com.google.android.material.appbar.AppBarLayout>
+
         <androidx.core.widget.NestedScrollView
-            android:background="#FEDBD0"
+            android:id="@+id/scroll_view"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:background="#FEDBD0"
             app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
             <TableLayout
@@ -44,6 +46,19 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content" />
         </androidx.core.widget.NestedScrollView>
+
+        <Button
+            android:id="@+id/more_button"
+            android:layout_width="420dp"
+            android:layout_height="50dp"
+            android:backgroundTint="#D38D8D"
+            android:text="More"
+            android:textAlignment="center"
+            app:layout_anchor="@+id/scroll_view"
+            app:layout_anchorGravity="bottom|center"
+            tools:visibility="invisible" />
+
+
 
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
@@ -53,6 +68,5 @@
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             app:menu="@menu/navigation_drawer"
-            android:layout_gravity="start"
-            app:headerLayout="@layout/header_navigation_drawer"/>
+            android:layout_gravity="start"/>
     </androidx.drawerlayout.widget.DrawerLayout>
