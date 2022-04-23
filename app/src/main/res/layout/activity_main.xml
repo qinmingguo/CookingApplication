@@ -58,8 +58,6 @@
             app:layout_anchorGravity="bottom|center"
             tools:visibility="invisible" />
 
-
-
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
     <com.google.android.material.navigation.NavigationView

@@ -61,6 +61,8 @@ public class MainActivity extends AppCompatActivity {
 
     private NavigationView navigationView;
 
+    private NestedScrollView scrollView;
+
     private TextView email_field,name_field;
 
     private View headerLayout;
@@ -155,8 +157,8 @@ public class MainActivity extends AppCompatActivity {
                     more_button.setVisibility(View.INVISIBLE);
 
                     // Action goes here
-                    int main_out = current_menu_value;
-                    for(int i = current_menu_value;i<main_out+6&&i<client.get_main_menus_list().size();i++){
+                    int local_main_value_out = current_menu_value;
+                    for(int i = current_menu_value;(i<local_main_value_out+6)&&(i<main_menus_list.size());i++){
                         if(current_table_row==null||current_table_row.getChildCount()==2){
                             current_table_row = new TableRow(MainActivity.this);
                             main_table.addView(current_table_row);
@@ -196,7 +198,7 @@ public class MainActivity extends AppCompatActivity {
                             }
                         });
                         current_table_row.addView(new_menu);
-                        System.out.println("New View added: "+current_menu_value);
+//                        System.out.println("New View added: "+current_menu_value);
                         current_menu_value++;
                     }
                     more_button.setOnClickListener(new View.OnClickListener() {
@@ -326,7 +328,7 @@ public class MainActivity extends AppCompatActivity {
                             }
                         });
                         current_table_row.addView(new_menu);
-                        System.out.println("New View added: "+current_menu_value);
+//                        System.out.println("New View added: "+current_menu_value);
                         current_menu_value++;
                     }
                     more_button.setOnClickListener(new View.OnClickListener() {
@@ -451,7 +453,7 @@ public class MainActivity extends AppCompatActivity {
                         });
 //                            }
                         current_table_row.addView(new_menu);
-                        System.out.println("New View added: "+current_menu_value);
+//                        System.out.println("New View added: "+current_menu_value);
                         current_menu_value++;
                     }
                     more_button.setOnClickListener(new View.OnClickListener() {
@@ -580,7 +582,7 @@ public class MainActivity extends AppCompatActivity {
                         });
 //                            }
                         current_table_row.addView(new_menu);
-                        System.out.println("New View added: "+current_menu_value);
+//                        System.out.println("New View added: "+current_menu_value);
                         current_menu_value++;
                     }
                     more_button.setOnClickListener(new View.OnClickListener() {
@@ -703,7 +705,8 @@ public class MainActivity extends AppCompatActivity {
                 topAppBar.setTitle(R.string.search);
                 //Clean main table menu items.
                 main_table.removeAllViews();
-                for(int i = current_menu_value;i<current_menu_value+6&&i<menus.size();i++){
+                int local_research_value_out = current_menu_value;
+                for(int i = current_menu_value;(i<local_research_value_out+6)&&(i<menus.size());i++){
                     if(current_table_row==null||current_table_row.getChildCount()==2){
                         current_table_row = new TableRow(MainActivity.this);
                         main_table.addView(current_table_row);
@@ -718,12 +721,16 @@ public class MainActivity extends AppCompatActivity {
                     Button go_button = new_menu.findViewById(R.id.menu_go_button);
                     int index = i;
                     go_button.setOnClickListener(view -> {
-                        //Go to Menu Read Activity.
+                        // Go to Menu Read Activity.
                         startReadMenu(menus.get(index));
                         client.addMenusToHistory(menus.get(index));
                     });
                     MaterialButton favor_button = new_menu.findViewById(R.id.menu_add_favor_button);
+
                     // handle favor button part
+                    if(favor_menus_list.contains(menus.get(i))){
+                        favor_button.setIconTint(ColorStateList.valueOf(getResources().getColor(R.color.purple_200)));
+                    }
                     favor_button.setOnClickListener(view -> {
                         if(client.getAccount()!=null){
                             // Add to favor
@@ -739,7 +746,7 @@ public class MainActivity extends AppCompatActivity {
                         }
                     });
                     current_table_row.addView(new_menu);
-                    System.out.println("New View added: "+current_menu_value);
+//                    System.out.println("New View added: "+current_menu_value);
                     current_menu_value++;
                 }
                 more_button.setOnClickListener(new View.OnClickListener() {
