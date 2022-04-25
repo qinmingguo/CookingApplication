@@ -18,17 +18,12 @@ import io.realm.mongodb.sync.SyncConfiguration;
 
 public class Client {
 
-
     //Realm
     private Realm backgroundThreadRealm,MenuThreadRealm;
-
     private App app;
-
     private User user;
-
     private Account account;
-
-    private RealmConfiguration config;
+    private RealmConfiguration Userconfig,Menuconfig;
     //data
     private RealmList<Menu> main_menus_list;
     private RealmList<Menu> favor_menus_list;
@@ -38,13 +33,12 @@ public class Client {
     public Client(){
         app = new App(new AppConfiguration.Builder(BuildConfig.MONGODB_REALM_APP_ID).build());
         user = app.currentUser();
-        config = new SyncConfiguration.Builder(user,"account="+user.getId()).allowWritesOnUiThread(true).build();
 
-        backgroundThreadRealm = Realm.getInstance(config);
+        Userconfig = new SyncConfiguration.Builder(user,"account="+user.getId()).allowWritesOnUiThread(true).build();
+        backgroundThreadRealm = Realm.getInstance(Userconfig);
 
-        config = new SyncConfiguration.Builder(user,"menu").allowWritesOnUiThread(true).build();
-
-        MenuThreadRealm = Realm.getInstance(config);
+        Menuconfig = new SyncConfiguration.Builder(user,"menu").allowWritesOnUiThread(true).build();
+        MenuThreadRealm = Realm.getInstance(Menuconfig);
 
         account = backgroundThreadRealm.where(Account.class).equalTo("_partition","account="+user.getId()).findFirst();
         //check account is vaild
@@ -80,6 +74,10 @@ public class Client {
 
     public void re_CheckAccount(){
         user = app.currentUser();
+        System.out.println(user.getId());
+        backgroundThreadRealm.close();
+        Userconfig = new SyncConfiguration.Builder(user,"account="+user.getId()).allowWritesOnUiThread(true).build();
+        backgroundThreadRealm = Realm.getInstance(Userconfig);
         account = backgroundThreadRealm.where(Account.class).equalTo("_partition","account="+user.getId()).findFirst();
         if(account==null){
             backgroundThreadRealm.executeTransaction(realm -> {
@@ -99,6 +97,9 @@ public class Client {
             });
             account = backgroundThreadRealm.where(Account.class).equalTo("_partition","account="+user.getId()).findFirst();
         }
+        System.out.println(account.get_partition());
+
+
     }
 
 

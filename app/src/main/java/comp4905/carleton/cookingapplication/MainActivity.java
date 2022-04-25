@@ -79,6 +79,14 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected  void onStart(){
         super.onStart();
+        if(client.getUser()!=null&&client.getAccount()!=null){
+            if(client.getAccount().getEmail()!=null&&email_field!=null){
+                email_field.setText(client.getAccount().getEmail());
+            }
+            if(client.getAccount().getName()!=null&&name_field!=null){
+                name_field.setText(client.getAccount().getName());
+            }
+        }
     }
 
     @Override
@@ -92,9 +100,8 @@ public class MainActivity extends AppCompatActivity {
         if(client.getUser()==null){
             //if don't have user then start to login
             startActivityForResult(new Intent(this, LoginActivity.class),REQUEST_LOGIN);
-        }else {
-
         }
+
         current_menu_value = 0;
 
         if(client.getUser()!=null&&client.getAccount()!=null){
@@ -877,8 +884,8 @@ public class MainActivity extends AppCompatActivity {
             if(resultCode == RESULT_OK){
                 client.re_CheckAccount();
 
-                email_field.setText(client.getAccount().getEmail());
-                name_field.setText(client.getAccount().getName());
+//                email_field.setText(client.getAccount().getEmail());
+//                name_field.setText(client.getAccount().getName());
             }else{
 
             }

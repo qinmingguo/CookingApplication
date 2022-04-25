@@ -132,9 +132,9 @@ public class LoginActivity extends AppCompatActivity {
                     Log.e(TAG, "LOGIN:Invalid username or password");
                     Toast.makeText(LoginActivity.this, "LOGIN:Invalid username or password", Toast.LENGTH_LONG).show();
                 }else{
-                    if(taskapp.currentUser()!=null){
-                        taskapp.switchUser(call.get());
-                    }
+                    taskapp.switchUser(call.get());
+//                    System.out.println(call.get().getId());
+//                    System.out.println(taskapp.currentUser().getId());
                     setResult(RESULT_OK);
                     finish();
                 }
