@@ -110,7 +110,6 @@ public class LoginActivity extends AppCompatActivity {
         String password = this.password_field.getText().toString();
 
         if(create){
-            //TODO: Register a User by username and password
             taskapp.getEmailPassword().registerUserAsync(username,password,call->{
                 login_button.setEnabled(true);
                 sign_up_button.setEnabled(true);
@@ -123,7 +122,6 @@ public class LoginActivity extends AppCompatActivity {
                 }
             });
         }else{
-            //TODO: Log in with the supplied username and password
             Credentials credentials = Credentials.emailPassword(username,password);
             taskapp.loginAsync(credentials,call->{
                 login_button.setEnabled(true);

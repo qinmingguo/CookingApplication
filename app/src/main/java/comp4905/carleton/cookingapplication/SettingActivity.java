@@ -43,8 +43,6 @@ public class SettingActivity extends AppCompatActivity {
         logout_button = (Chip)findViewById(R.id.Logout_Button);
 //        clear_cache_button = (Chip)findViewById(R.id.Clear_cache_Button);
 
-
-
         logout_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {

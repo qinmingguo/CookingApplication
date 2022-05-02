@@ -711,6 +711,7 @@ public class MainActivity extends AppCompatActivity {
                 //Clean main table menu items.
                 main_table.removeAllViews();
                 int local_research_value_out = current_menu_value;
+                //add all menu result to main table;
                 for(int i = current_menu_value;(i<local_research_value_out+6)&&(i<menus.size());i++){
                     if(current_table_row==null||current_table_row.getChildCount()==2){
                         current_table_row = new TableRow(MainActivity.this);
@@ -856,12 +857,14 @@ public class MainActivity extends AppCompatActivity {
                 email_field.setText(client.getAccount().getEmail());
                 name_field.setText(client.getAccount().getName());
             }
-        }else if (requestCode == REQUEST_SETTING) {
+        }
+        else if (requestCode == REQUEST_SETTING) {
             if(resultCode == RESULT_OK) {
                 //handle setting result
                 startActivityForResult(new Intent(this,LoginActivity.class),REQUEST_LOGIN);
             }
-        }else if (requestCode == REQUEST_CREATE) {
+        }
+        else if (requestCode == REQUEST_CREATE) {
             if(resultCode == RESULT_OK) {
                 //handle create result
                 LocalDate date = LocalDate.now();
@@ -877,7 +880,8 @@ public class MainActivity extends AppCompatActivity {
                     p += s;
                     p += ";";
                 }
-                client.CreateNewMenu(client.getAccount().get_id(),data.getStringExtra(String.valueOf(R.string.title)),client.getAccount().getName(),date.toString(),String.valueOf(R.string.introduction),
+                client.CreateNewMenu(client.getAccount().get_id(),data.getStringExtra(String.valueOf(R.string.title)),
+                        client.getAccount().getName(),date.toString(),String.valueOf(R.string.introduction),
                         ingredient,p);
             }
         }else if(requestCode == REQUEST_LOGIN){
